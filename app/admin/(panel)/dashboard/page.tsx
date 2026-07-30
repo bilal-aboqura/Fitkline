@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCmsContent } from "@/lib/cms-store";
 import { getOrders } from "@/lib/order-store";
 import { getKashierConfiguration } from "@/lib/kashier";
+import { getSupabaseConfiguration } from "@/lib/supabase-server";
 
 export const metadata = { title: "نظرة عامة" };
 
@@ -11,8 +12,12 @@ export default async function AdminDashboardPage() {
   const openOrders = orders.filter(
     (order) => !["completed", "cancelled"].includes(order.orderStatus),
   );
-  const revenue = paidOrders.reduce((total, order) => total + (order.subtotal ?? 0), 0);
+  const revenue = paidOrders.reduce(
+    (total, order) => total + (order.total ?? 0),
+    0,
+  );
   const kashier = getKashierConfiguration();
+  const supabase = getSupabaseConfiguration();
 
   return (
     <>
@@ -55,7 +60,7 @@ export default async function AdminDashboardPage() {
         <aside className="admin-panel admin-status-panel">
           <div className="admin-panel__header"><div><p className="admin-eyebrow">جاهزية التشغيل</p><h2>حالة النظام</h2></div></div>
           <dl>
-            <div><dt>المحتوى</dt><dd className="is-good">متصل</dd></div>
+            <div><dt>Supabase</dt><dd className={supabase.ready ? "is-good" : "is-warning"}>{supabase.ready ? "متصل" : "يحتاج إعداد"}</dd></div>
             <div><dt>الكتالوج</dt><dd className="is-good">{content.products.length} منتجات</dd></div>
             <div><dt>الدفع عند الاستلام</dt><dd className={content.settings.cashOnDeliveryEnabled ? "is-good" : ""}>{content.settings.cashOnDeliveryEnabled ? "مفعّل" : "متوقف"}</dd></div>
             <div><dt>كاشير</dt><dd className={kashier.ready && content.settings.kashierEnabled ? "is-good" : "is-warning"}>{kashier.ready && content.settings.kashierEnabled ? "جاهز" : "يحتاج إعداد"}</dd></div>

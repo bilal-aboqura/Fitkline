@@ -14,9 +14,25 @@ KASHIER_MERCHANT_ID=
 KASHIER_API_KEY=
 KASHIER_SECRET_KEY=
 KASHIER_MODE=test
+
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+DATABASE_URL=
+DIRECT_URL=
 ```
 
 Restart the Next.js server after changing environment variables.
+
+Run the idempotent database migration once for each Supabase project:
+
+```bash
+npm run db:migrate
+```
+
+The migration creates only namespaced `fitkline_*` tables and the public
+`fitkline-assets` bucket, so it can share a Supabase project with another app
+without changing that app's tables.
 
 ## 2. Admin access
 
@@ -28,6 +44,8 @@ The dashboard includes:
 - site identity, navigation, homepage copy, all internal page copy, contact
   form labels/options/messages, and public settings;
 - products, 4 kg and 20 kg images, copy, prices, stock, and visibility;
+- all 27 Egyptian governorates, their cities/areas, availability, a default
+  shipping price per governorate, and optional city-specific overrides;
 - image upload for PNG, JPG, and WebP;
 - order search, details, payment state, and fulfillment state;
 - Kashier readiness without exposing secret values.
@@ -50,10 +68,19 @@ Kashier is shown at checkout only when:
 
 No raw card data is submitted to or stored by Fitkline.
 
-## 4. Storage note
+## 4. Storage
 
-Content and orders currently persist in `data/cms-content.json` and
-`data/orders.json`. This is reliable for a local server or a deployment with a
-persistent writable disk. Before deploying to a serverless platform with an
-ephemeral/read-only filesystem, move these stores to a managed database while
-keeping the same APIs.
+- CMS content and products: `fitkline_cms_documents`
+- Orders: `fitkline_orders`
+- Governorates and shipping defaults: `fitkline_governorates`
+- Cities and shipping overrides: `fitkline_cities`
+- Uploaded images: `fitkline-assets`
+
+All application access uses the server-side service-role key. RLS is enabled,
+and the browser never receives the service-role key or direct table access.
+The local JSON files remain only as migration seeds and are not written at
+runtime.
+
+The migration seeds Egyptian governorates and city/area names from
+`sabrysuleiman/Egypt-Governorates-Cities-JSON` (GPL-3.0). Commercial shipping
+prices are intentionally left empty until they are set from the admin panel.

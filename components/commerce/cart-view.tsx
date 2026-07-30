@@ -6,6 +6,15 @@ import { useCart } from "@/components/commerce/cart-provider";
 
 export function CartView() {
   const { items, updateQuantity, removeItem } = useCart();
+  const hasPendingPrice = items.some(
+    (item) => typeof item.unitPrice !== "number",
+  );
+  const subtotal = hasPendingPrice
+    ? null
+    : items.reduce(
+        (total, item) => total + (item.unitPrice ?? 0) * item.quantity,
+        0,
+      );
 
   if (!items.length) {
     return (
@@ -27,7 +36,11 @@ export function CartView() {
             <div className="cart-item__copy">
               <p dir="ltr">{item.name}</p>
               <h2>{item.sizeLabel}</h2>
-              <span>السعر بعد تأكيد التوفر</span>
+              <span>
+                {typeof item.unitPrice === "number"
+                  ? `${item.unitPrice.toLocaleString("ar-EG")} ج.م`
+                  : "السعر بعد تأكيد التوفر"}
+              </span>
             </div>
             <div className="cart-item__controls">
               <label>
@@ -44,8 +57,8 @@ export function CartView() {
         <h2>نأكد التفاصيل معاك.</h2>
         <dl>
           <div><dt>عدد المنتجات</dt><dd>{items.reduce((total, item) => total + item.quantity, 0)}</dd></div>
-          <div><dt>السعر</dt><dd>قيد التأكيد</dd></div>
-          <div><dt>الشحن</dt><dd>داخل مصر — قيد التأكيد</dd></div>
+          <div><dt>المجموع الفرعي</dt><dd>{subtotal === null ? "قيد التأكيد" : `${subtotal.toLocaleString("ar-EG")} ج.م`}</dd></div>
+          <div><dt>الشحن</dt><dd>يُحسب حسب المحافظة والمدينة</dd></div>
         </dl>
         <Link className="fit-button-primary" href="/checkout">كمل طلبك</Link>
         <Link className="summary-link" href="/products">أضف منتج تاني</Link>

@@ -8,6 +8,7 @@ const navigation = [
   { href: "/admin/dashboard", label: "نظرة عامة" },
   { href: "/admin/content", label: "محتوى الموقع" },
   { href: "/admin/products", label: "المنتجات والأسعار" },
+  { href: "/admin/shipping", label: "المحافظات والشحن" },
   { href: "/admin/orders", label: "الطلبات" },
   { href: "/admin/settings", label: "الإعدادات والدفع" },
 ];
@@ -65,4 +66,3 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-

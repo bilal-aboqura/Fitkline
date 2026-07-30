@@ -31,13 +31,13 @@ export async function POST(request: Request) {
     }
 
     const verified = await verifyKashierSession(sessionId);
-    if (storedOrder.subtotal === null) {
+    if (storedOrder.total === null) {
       return NextResponse.json({ error: "Order amount unavailable" }, { status: 409 });
     }
     const inspection = inspectKashierPayment(verified, {
       sessionId,
       reference: storedOrder.reference,
-      amount: storedOrder.subtotal,
+      amount: storedOrder.total,
       currency: storedOrder.currency,
     });
     if (!inspection.integrityValid) {

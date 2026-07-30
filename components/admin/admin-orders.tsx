@@ -73,7 +73,7 @@ export function AdminOrders({ initialOrders }: { initialOrders: StoredOrder[] })
               <summary>
                 <span><b dir="ltr">{order.reference}</b><small>{new Date(order.createdAt).toLocaleString("ar-EG")}</small></span>
                 <span><b>{order.customer.name}</b><small dir="ltr">{order.customer.phone}</small></span>
-                <span><b>{order.subtotal === null ? "سعر قيد التأكيد" : `${order.subtotal.toLocaleString("ar-EG")} ج.م`}</b><small>{order.paymentMethod === "kashier" ? "كاشير" : "دفع عند الاستلام"} · {order.paymentStatus}</small></span>
+                <span><b>{order.total === null ? "الإجمالي قيد التأكيد" : `${order.total.toLocaleString("ar-EG")} ج.م`}</b><small>{order.paymentMethod === "kashier" ? "كاشير" : "دفع عند الاستلام"} · {order.paymentStatus}</small></span>
                 <span className={`admin-status admin-status--${order.orderStatus}`}>{statusLabels[order.orderStatus]}</span>
               </summary>
               <div className="admin-order-detail">
@@ -84,12 +84,18 @@ export function AdminOrders({ initialOrders }: { initialOrders: StoredOrder[] })
                     <div><dt>الهاتف</dt><dd dir="ltr">{order.customer.phone}</dd></div>
                     <div><dt>البريد</dt><dd dir="ltr">{order.customer.email}</dd></div>
                     <div><dt>المحافظة</dt><dd>{order.customer.governorate}</dd></div>
+                    <div><dt>المدينة / المنطقة</dt><dd>{order.customer.city}</dd></div>
                     <div><dt>العنوان</dt><dd>{order.customer.address}</dd></div>
                   </dl>
                 </section>
                 <section>
                   <h3>المنتجات</h3>
                   <ul>{order.items.map((item) => <li key={`${item.slug}-${item.sizeId}`}><span dir="ltr">{item.name}</span><span>{item.sizeLabel} × {item.quantity}</span></li>)}</ul>
+                  <dl>
+                    <div><dt>المجموع الفرعي</dt><dd>{order.subtotal === null ? "قيد التأكيد" : `${order.subtotal.toLocaleString("ar-EG")} ج.م`}</dd></div>
+                    <div><dt>الشحن</dt><dd>{order.shippingAmount === null ? "قيد التأكيد" : `${order.shippingAmount.toLocaleString("ar-EG")} ج.م`}</dd></div>
+                    <div><dt>الإجمالي</dt><dd>{order.total === null ? "قيد التأكيد" : `${order.total.toLocaleString("ar-EG")} ج.م`}</dd></div>
+                  </dl>
                 </section>
                 <label>
                   <span>حالة التنفيذ</span>
@@ -107,4 +113,3 @@ export function AdminOrders({ initialOrders }: { initialOrders: StoredOrder[] })
     </section>
   );
 }
-

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCmsContent } from "@/lib/cms-store";
 import { createKashierSession, getKashierConfiguration } from "@/lib/kashier";
 import { getSiteOrigin } from "@/lib/site-url";
+import { resolveShippingLocation } from "@/lib/shipping-store";
 import {
   createOrder,
   updateOrder,
@@ -27,7 +28,6 @@ export async function POST(request: Request) {
       name: text(body.name),
       phone: text(body.phone),
       email: text(body.email),
-      governorate: text(body.governorate),
       address: text(body.address),
     };
     const missing = Object.entries(customer)
@@ -36,6 +36,19 @@ export async function POST(request: Request) {
     if (missing.length) {
       return NextResponse.json(
         { error: "من فضلك كمّل بيانات التواصل والعنوان.", missing },
+        { status: 400 },
+      );
+    }
+
+    const governorateId = text(body.governorateId);
+    const cityId = Number(body.cityId);
+    const shippingLocation =
+      governorateId && Number.isInteger(cityId)
+        ? await resolveShippingLocation(governorateId, cityId)
+        : null;
+    if (!shippingLocation) {
+      return NextResponse.json(
+        { error: "اختار محافظة ومدينة متاحتين للتوصيل." },
         { status: 400 },
       );
     }
@@ -87,13 +100,21 @@ export async function POST(request: Request) {
     }
 
     const kashier = getKashierConfiguration();
+    const shippingAmount = shippingLocation.shippingPrice;
+    const total =
+      !hasPendingPrice && shippingAmount !== null
+        ? subtotal + shippingAmount
+        : null;
     if (paymentMethod === "kashier") {
       if (!content.settings.kashierEnabled || !kashier.ready) {
         return NextResponse.json({ error: "الدفع الإلكتروني غير متاح حاليًا." }, { status: 400 });
       }
-      if (hasPendingPrice || subtotal <= 0) {
+      if (total === null || total <= 0) {
         return NextResponse.json(
-          { error: "الدفع الإلكتروني يحتاج سعرًا مؤكدًا لكل حجم في الطلب." },
+          {
+            error:
+              "الدفع الإلكتروني يحتاج سعرًا مؤكدًا للمنتجات والشحن.",
+          },
           { status: 400 },
         );
       }
@@ -106,9 +127,17 @@ export async function POST(request: Request) {
       reference,
       createdAt: now,
       updatedAt: now,
-      customer,
+      customer: {
+        ...customer,
+        governorate: shippingLocation.governorate.nameAr,
+        governorateId: shippingLocation.governorate.id,
+        city: shippingLocation.city.nameAr,
+        cityId: shippingLocation.city.id,
+      },
       items,
       subtotal: hasPendingPrice ? null : subtotal,
+      shippingAmount,
+      total,
       currency: "EGP",
       orderStatus: "new",
       paymentMethod,
@@ -123,7 +152,7 @@ export async function POST(request: Request) {
           : new URL(request.url).origin;
         const session = await createKashierSession({
           reference,
-          amount: subtotal,
+          amount: total!,
           customerEmail: customer.email,
           customerReference: customer.phone,
           origin: configuredOrigin,

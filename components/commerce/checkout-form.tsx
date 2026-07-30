@@ -3,31 +3,77 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/components/commerce/cart-provider";
+import type { ShippingGovernorate } from "@/lib/shipping-store";
+
+function money(value: number) {
+  return `${value.toLocaleString("ar-EG", {
+    minimumFractionDigits: value % 1 ? 2 : 0,
+    maximumFractionDigits: 2,
+  })} ج.م`;
+}
 
 export function CheckoutForm({
   paymentOptions,
+  shippingLocations,
 }: {
   paymentOptions: { cod: boolean; kashier: boolean };
+  shippingLocations: ShippingGovernorate[];
 }) {
   const { items, clearCart } = useCart();
   const [submitted, setSubmitted] = useState(false);
   const [reference, setReference] = useState("");
   const [error, setError] = useState("");
+  const [governorateId, setGovernorateId] = useState("");
+  const [cityId, setCityId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "kashier">(
     paymentOptions.cod ? "cod" : "kashier",
   );
   const [loading, setLoading] = useState(false);
+
+  const governorate = shippingLocations.find(
+    (item) => item.id === governorateId,
+  );
+  const city = governorate?.cities.find((item) => item.id === Number(cityId));
+  const shippingAmount = city
+    ? city.shippingPrice ?? governorate?.shippingPrice ?? null
+    : null;
+  const hasPendingPrice = items.some(
+    (item) => typeof item.unitPrice !== "number",
+  );
+  const subtotal = hasPendingPrice
+    ? null
+    : items.reduce(
+        (total, item) => total + (item.unitPrice ?? 0) * item.quantity,
+        0,
+      );
+  const total =
+    subtotal !== null && shippingAmount !== null
+      ? subtotal + shippingAmount
+      : null;
   const kashierAvailable =
-    paymentOptions.kashier &&
-    items.every((item) => typeof item.unitPrice === "number" && item.unitPrice > 0);
+    paymentOptions.kashier && total !== null && total > 0;
+
+  const activeCities =
+    governorate?.cities.filter((item) => item.active) ?? [];
+  const effectivePaymentMethod =
+    paymentMethod === "kashier" && !kashierAvailable && paymentOptions.cod
+      ? "cod"
+      : paymentMethod;
 
   if (submitted) {
     return (
       <div className="success-state" role="status">
-        <span className="empty-state__code" dir="ltr">REQUEST / {reference}</span>
-        <h2>طلبك وصل لفريق Fitkline.</h2>
-        <p>هنراجع المنتجات والأحجام ونتواصل معاك لتأكيد السعر، التوفر، والشحن قبل التنفيذ.</p>
-        <Link className="fit-button-primary" href="/products">ارجع للمنتجات</Link>
+        <span className="empty-state__code" dir="ltr">
+          ORDER / {reference}
+        </span>
+        <h2>طلبك اتسجل بنجاح.</h2>
+        <p>
+          فريق Fitkline هيراجع الطلب ويتواصل معاك لتأكيد التنفيذ وموعد
+          التوصيل.
+        </p>
+        <Link className="fit-button-primary" href="/products">
+          ارجع للمنتجات
+        </Link>
       </div>
     );
   }
@@ -36,8 +82,10 @@ export function CheckoutForm({
     return (
       <div className="empty-state">
         <h2>مفيش منتجات للتأكيد.</h2>
-        <p>ابدأ بإضافة منتج واحد على الأقل لطلبك.</p>
-        <Link className="fit-button-primary" href="/products">تصفح المنتجات</Link>
+        <p>أضف منتجًا واحدًا على الأقل قبل إكمال الطلب.</p>
+        <Link className="fit-button-primary" href="/products">
+          تصفح المنتجات
+        </Link>
       </div>
     );
   }
@@ -55,10 +103,11 @@ export function CheckoutForm({
           name: formData.get("name"),
           phone: formData.get("phone"),
           email: formData.get("email"),
-          governorate: formData.get("governorate"),
+          governorateId,
+          cityId: Number(cityId),
           address: formData.get("address"),
           items,
-          paymentMethod,
+          paymentMethod: effectivePaymentMethod,
         }),
       });
       const result = (await response.json()) as {
@@ -66,7 +115,9 @@ export function CheckoutForm({
         redirectUrl?: string;
         error?: string;
       };
-      if (!response.ok) throw new Error(result.error ?? "حصلت مشكلة في إرسال الطلب.");
+      if (!response.ok) {
+        throw new Error(result.error ?? "حصلت مشكلة في تسجيل الطلب.");
+      }
       if (result.redirectUrl) {
         window.location.assign(result.redirectUrl);
         return;
@@ -76,7 +127,9 @@ export function CheckoutForm({
       clearCart();
     } catch (submitError) {
       setError(
-        submitError instanceof Error ? submitError.message : "حصلت مشكلة في إرسال الطلب.",
+        submitError instanceof Error
+          ? submitError.message
+          : "حصلت مشكلة في تسجيل الطلب.",
       );
     } finally {
       setLoading(false);
@@ -88,14 +141,81 @@ export function CheckoutForm({
   return (
     <form className="commerce-form" onSubmit={handleSubmit}>
       <div className="form-section">
-        <p className="section-heading__kicker">بيانات التواصل</p>
+        <p className="section-heading__kicker">بيانات التواصل والتوصيل</p>
         <h2>خلّينا نعرف نوصل لك.</h2>
         <div className="form-grid">
-          <label><span>الاسم بالكامل</span><input required name="name" autoComplete="name" /></label>
-          <label><span>رقم الموبايل</span><input required name="phone" type="tel" inputMode="tel" autoComplete="tel" /></label>
-          <label><span>البريد الإلكتروني</span><input required name="email" type="email" autoComplete="email" /></label>
-          <label><span>المحافظة</span><input required name="governorate" autoComplete="address-level1" /></label>
-          <label className="form-grid__full"><span>العنوان أو وصف المكان</span><textarea required name="address" rows={4} autoComplete="street-address" /></label>
+          <label>
+            <span>الاسم بالكامل</span>
+            <input required name="name" autoComplete="name" />
+          </label>
+          <label>
+            <span>رقم الموبايل</span>
+            <input
+              required
+              name="phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+            />
+          </label>
+          <label>
+            <span>البريد الإلكتروني</span>
+            <input
+              required
+              name="email"
+              type="email"
+              autoComplete="email"
+            />
+          </label>
+          <label>
+            <span>المحافظة</span>
+            <select
+              required
+              name="governorateId"
+              value={governorateId}
+              autoComplete="address-level1"
+              onChange={(event) => {
+                setGovernorateId(event.target.value);
+                setCityId("");
+              }}
+            >
+              <option value="">اختار المحافظة</option>
+              {shippingLocations.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nameAr}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>المدينة أو المنطقة</span>
+            <select
+              required
+              name="cityId"
+              value={cityId}
+              autoComplete="address-level2"
+              disabled={!governorateId}
+              onChange={(event) => setCityId(event.target.value)}
+            >
+              <option value="">
+                {governorateId ? "اختار المدينة أو المنطقة" : "اختار المحافظة أولًا"}
+              </option>
+              {activeCities.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.nameAr}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="form-grid__full">
+            <span>العنوان بالتفصيل</span>
+            <textarea
+              required
+              name="address"
+              rows={4}
+              autoComplete="street-address"
+            />
+          </label>
         </div>
       </div>
 
@@ -105,61 +225,106 @@ export function CheckoutForm({
         <ul className="order-review">
           {items.map((item) => (
             <li key={item.key}>
-              <span dir="ltr">{item.name}</span>
-              <span>{item.sizeLabel} × {item.quantity}</span>
+              <span>
+                <b dir="ltr">{item.name}</b>
+                <small>
+                  {item.sizeLabel} × {item.quantity}
+                </small>
+              </span>
+              <span>
+                {typeof item.unitPrice === "number"
+                  ? money(item.unitPrice * item.quantity)
+                  : "السعر قيد التأكيد"}
+              </span>
             </li>
           ))}
         </ul>
 
+        <dl className="checkout-totals">
+          <div>
+            <dt>المجموع الفرعي</dt>
+            <dd>{subtotal === null ? "قيد التأكيد" : money(subtotal)}</dd>
+          </div>
+          <div>
+            <dt>الشحن</dt>
+            <dd>
+              {!city
+                ? "اختار عنوان التوصيل"
+                : shippingAmount === null
+                  ? "قيد التأكيد"
+                  : money(shippingAmount)}
+            </dd>
+          </div>
+          <div>
+            <dt>الإجمالي</dt>
+            <dd>{total === null ? "قيد التأكيد" : money(total)}</dd>
+          </div>
+        </dl>
+
         <fieldset className="payment-methods">
           <legend>طريقة الدفع</legend>
           {paymentOptions.cod ? (
-            <label className={paymentMethod === "cod" ? "is-selected" : ""}>
+            <label className={effectivePaymentMethod === "cod" ? "is-selected" : ""}>
               <input
                 type="radio"
                 name="paymentMethod"
                 value="cod"
-                checked={paymentMethod === "cod"}
+                checked={effectivePaymentMethod === "cod"}
                 onChange={() => setPaymentMethod("cod")}
               />
-              <span><b>الدفع عند الاستلام</b><small>فريق Fitkline يؤكد السعر والشحن قبل التنفيذ.</small></span>
+              <span>
+                <b>الدفع عند الاستلام</b>
+                <small>
+                  لو أي سعر لسه غير محدد، الفريق هيأكد الإجمالي معاك قبل
+                  التنفيذ.
+                </small>
+              </span>
             </label>
           ) : null}
-          {kashierAvailable ? (
-            <label className={paymentMethod === "kashier" ? "is-selected" : ""}>
+          {paymentOptions.kashier ? (
+            <label
+              className={effectivePaymentMethod === "kashier" ? "is-selected" : ""}
+            >
               <input
                 type="radio"
                 name="paymentMethod"
                 value="kashier"
-                checked={paymentMethod === "kashier"}
+                checked={effectivePaymentMethod === "kashier"}
+                disabled={!kashierAvailable}
                 onChange={() => setPaymentMethod("kashier")}
               />
-              <span><b>الدفع الإلكتروني مع كاشير</b><small>هتنتقل لصفحة كاشير الآمنة. Fitkline لا يستقبل بيانات بطاقتك.</small></span>
+              <span>
+                <b>الدفع الإلكتروني مع كاشير</b>
+                <small>
+                  {kashierAvailable
+                    ? "هتنتقل لصفحة كاشير الآمنة لإتمام الدفع."
+                    : "يتاح بعد اختيار العنوان وتحديد أسعار المنتجات والشحن."}
+                </small>
+              </span>
             </label>
-          ) : null}
-          {paymentOptions.kashier && !kashierAvailable ? (
-            <p className="payment-methods__unavailable">
-              كاشير يظهر بعد إضافة أسعار الأحجام المختارة من لوحة التحكم، ثم إعادة إضافتها للسلة.
-            </p>
           ) : null}
         </fieldset>
 
         {noPaymentMethod ? (
-          <p className="form-error" role="alert">لا توجد طريقة دفع مفعّلة حاليًا. تواصل مع فريق Fitkline.</p>
-        ) : (
-          <p className="form-notice">
-            {paymentMethod === "kashier"
-              ? "الدفع الإلكتروني يتاح فقط للمنتجات ذات السعر المؤكد."
-              : "السعر، التوفر، وتكلفة الشحن يتم تأكيدهم معاك قبل التنفيذ."}
+          <p className="form-error" role="alert">
+            لا توجد طريقة دفع متاحة لهذا الطلب حاليًا.
           </p>
-        )}
-        {error ? <p className="form-error" role="alert">{error}</p> : null}
-        <button className="fit-button-primary" type="submit" disabled={loading || noPaymentMethod}>
+        ) : null}
+        {error ? (
+          <p className="form-error" role="alert">
+            {error}
+          </p>
+        ) : null}
+        <button
+          className="fit-button-primary"
+          type="submit"
+          disabled={loading || noPaymentMethod}
+        >
           {loading
             ? "جاري تسجيل الطلب…"
-            : paymentMethod === "kashier"
+            : effectivePaymentMethod === "kashier"
               ? "تابع للدفع الآمن"
-              : "ابعت طلب التأكيد"}
+              : "سجل الطلب"}
         </button>
       </div>
     </form>

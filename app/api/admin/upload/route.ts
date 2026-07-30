@@ -1,8 +1,7 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { getSupabaseServerClient } from "@/lib/supabase-server";
 
 const allowedTypes = new Map([
   ["image/png", "png"],
@@ -27,10 +26,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "حجم الصورة يجب ألا يتجاوز 10MB." }, { status: 400 });
   }
 
-  const directory = path.join(process.cwd(), "public", "uploads");
-  await fs.mkdir(directory, { recursive: true });
   const filename = `${crypto.randomUUID()}.${extension}`;
-  await fs.writeFile(path.join(directory, filename), Buffer.from(await file.arrayBuffer()));
-  return NextResponse.json({ url: `/uploads/${filename}` }, { status: 201 });
+  const objectPath = `uploads/${new Date().getUTCFullYear()}/${filename}`;
+  const supabase = getSupabaseServerClient();
+  const { error } = await supabase.storage
+    .from("fitkline-assets")
+    .upload(objectPath, Buffer.from(await file.arrayBuffer()), {
+      contentType: file.type,
+      cacheControl: "31536000",
+      upsert: false,
+    });
+  if (error) {
+    return NextResponse.json(
+      { error: "تعذر رفع الصورة إلى التخزين الدائم." },
+      { status: 500 },
+    );
+  }
+  const { data } = supabase.storage
+    .from("fitkline-assets")
+    .getPublicUrl(objectPath);
+  return NextResponse.json({ url: data.publicUrl }, { status: 201 });
 }
-

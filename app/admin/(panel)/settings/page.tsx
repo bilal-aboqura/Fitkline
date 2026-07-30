@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { getCmsContent } from "@/lib/cms-store";
 import { getKashierConfiguration } from "@/lib/kashier";
+import { getSupabaseConfiguration } from "@/lib/supabase-server";
+import { getShippingLocations } from "@/lib/shipping-store";
 
 export const metadata = { title: "الإعدادات والدفع" };
 
 export default async function AdminSettingsPage() {
-  const [content, kashier] = await Promise.all([
+  const [content, kashier, shippingLocations] = await Promise.all([
     getCmsContent(),
     Promise.resolve(getKashierConfiguration()),
+    getShippingLocations({ includeInactive: true }),
   ]);
+  const supabase = getSupabaseConfiguration();
   const checks = [
     { label: "Merchant ID", ready: Boolean(kashier.merchantId) },
     { label: "API Key", ready: Boolean(kashier.apiKey) },
@@ -27,6 +31,21 @@ export default async function AdminSettingsPage() {
       </header>
 
       <div className="admin-settings-grid">
+        <section className="admin-panel admin-payment-panel">
+          <div className="admin-panel__header">
+            <div><p className="admin-eyebrow">SUPABASE STORAGE</p><h2>التخزين الدائم</h2></div>
+            <span className={`admin-connection${supabase.ready ? " is-ready" : ""}`}>{supabase.ready ? "متصل" : "غير مكتمل"}</span>
+          </div>
+          <p>المحتوى والأسعار والطلبات والصور محفوظة خارج ملفات التطبيق، لذلك تظل التعديلات موجودة بعد كل نشر.</p>
+          <dl>
+            <div><dt>المحتوى والمنتجات</dt><dd className="is-good">قاعدة البيانات</dd></div>
+            <div><dt>صور الإدارة</dt><dd className="is-good">fitkline-assets</dd></div>
+            <div><dt>المحافظات</dt><dd>{shippingLocations.length}</dd></div>
+            <div><dt>المدن والمناطق</dt><dd>{shippingLocations.reduce((total, item) => total + item.cities.length, 0)}</dd></div>
+          </dl>
+          <Link className="admin-secondary-action" href="/admin/shipping">إدارة أسعار الشحن</Link>
+        </section>
+
         <section className="admin-panel admin-payment-panel">
           <div className="admin-panel__header">
             <div><p className="admin-eyebrow">KASHIER PAYMENT SESSIONS</p><h2>الدفع الإلكتروني</h2></div>
@@ -60,4 +79,3 @@ export default async function AdminSettingsPage() {
     </>
   );
 }
-

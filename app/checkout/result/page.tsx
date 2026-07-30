@@ -15,14 +15,14 @@ export default async function CheckoutResultPage({
   if (
     order?.paymentStatus === "pending" &&
     order.kashierSessionId &&
-    order.subtotal !== null
+    order.total !== null
   ) {
     try {
       const verified = await verifyKashierSession(order.kashierSessionId);
       const inspection = inspectKashierPayment(verified, {
         sessionId: order.kashierSessionId,
         reference: order.reference,
-        amount: order.subtotal,
+        amount: order.total,
         currency: order.currency,
       });
       if (!inspection.integrityValid) {

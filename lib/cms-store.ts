@@ -1,9 +1,8 @@
 import "server-only";
 
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import { unstable_noStore as noStore } from "next/cache";
 import type { Product } from "@/data/products";
+import { getSupabaseServerClient } from "@/lib/supabase-server";
 
 export type SiteSettings = {
   siteName: string;
@@ -116,7 +115,6 @@ export type CmsContent = {
   products: Product[];
 };
 
-const contentPath = path.join(process.cwd(), "data", "cms-content.json");
 const allowedSizeIds = new Set(["4kg", "20kg"]);
 
 function assertText(value: unknown, field: string) {
@@ -226,8 +224,13 @@ export function validateCmsContent(value: unknown): asserts value is CmsContent 
 
 export async function getCmsContent() {
   noStore();
-  const raw = await fs.readFile(contentPath, "utf8");
-  const content: unknown = JSON.parse(raw);
+  const { data, error } = await getSupabaseServerClient()
+    .from("fitkline_cms_documents")
+    .select("content")
+    .eq("id", "main")
+    .single();
+  if (error) throw error;
+  const content: unknown = data.content;
   validateCmsContent(content);
   return content;
 }
@@ -240,9 +243,18 @@ export async function saveCmsContent(input: unknown) {
     revision: current.revision + 1,
     updatedAt: new Date().toISOString(),
   };
-  const temporaryPath = `${contentPath}.tmp`;
-  await fs.writeFile(temporaryPath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
-  await fs.rename(temporaryPath, contentPath);
+  const { error } = await getSupabaseServerClient()
+    .from("fitkline_cms_documents")
+    .upsert(
+      {
+        id: "main",
+        content: next,
+        revision: next.revision,
+        updated_at: next.updatedAt,
+      },
+      { onConflict: "id" },
+    );
+  if (error) throw error;
   return next;
 }
 
