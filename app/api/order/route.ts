@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { getCmsContent } from "@/lib/cms-store";
 import { createKashierSession, getKashierConfiguration } from "@/lib/kashier";
+import { getSiteOrigin } from "@/lib/site-url";
 import {
   createOrder,
   updateOrder,
@@ -117,9 +118,9 @@ export async function POST(request: Request) {
 
     if (paymentMethod === "kashier") {
       try {
-        const configuredOrigin =
-          process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
-          new URL(request.url).origin;
+        const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL
+          ? getSiteOrigin()
+          : new URL(request.url).origin;
         const session = await createKashierSession({
           reference,
           amount: subtotal,
@@ -153,4 +154,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

@@ -4,6 +4,7 @@ import { CartProvider } from "@/components/commerce/cart-provider";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { getCmsContent } from "@/lib/cms-store";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const alexandria = Alexandria({
@@ -20,7 +21,7 @@ const lalezar = Lalezar({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: getSiteUrl(),
   title: {
     default: "Fitkline | حلول نظافة للمنشآت الرياضية",
     template: "%s | Fitkline",
