@@ -1,3 +1,11 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 export type Database = {
   public: {
     Tables: {
@@ -132,9 +140,52 @@ export type Database = {
         };
         Relationships: [];
       };
+      fitkline_analytics_events: {
+        Row: {
+          id: number;
+          occurred_at: string;
+          visitor_id: string;
+          session_id: string;
+          path: string;
+          referrer_host: string | null;
+          utm_source: string | null;
+          utm_medium: string | null;
+          utm_campaign: string | null;
+          device_category: "desktop" | "mobile" | "tablet";
+        };
+        Insert: {
+          id?: number;
+          occurred_at?: string;
+          visitor_id: string;
+          session_id: string;
+          path: string;
+          referrer_host?: string | null;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          device_category?: "desktop" | "mobile" | "tablet";
+        };
+        Update: {
+          occurred_at?: string;
+          visitor_id?: string;
+          session_id?: string;
+          path?: string;
+          referrer_host?: string | null;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          device_category?: "desktop" | "mobile" | "tablet";
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      fitkline_get_analytics: {
+        Args: { p_days?: number };
+        Returns: Json;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

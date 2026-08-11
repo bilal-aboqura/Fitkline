@@ -48,6 +48,8 @@ The dashboard includes:
   shipping price per governorate, and optional city-specific overrides;
 - image upload for PNG, JPG, and WebP;
 - order search, details, payment state, and fulfillment state;
+- privacy-conscious visitor analytics, page views, traffic sources, devices,
+  popular pages, and approximate order conversion;
 - Kashier readiness without exposing secret values.
 
 ## 3. Kashier flow
@@ -72,6 +74,7 @@ No raw card data is submitted to or stored by Fitkline.
 
 - CMS content and products: `fitkline_cms_documents`
 - Orders: `fitkline_orders`
+- Anonymous page-view analytics: `fitkline_analytics_events`
 - Governorates and shipping defaults: `fitkline_governorates`
 - Cities and shipping overrides: `fitkline_cities`
 - Uploaded images: `fitkline-assets`
@@ -80,6 +83,11 @@ All application access uses the server-side service-role key. RLS is enabled,
 and the browser never receives the service-role key or direct table access.
 The local JSON files remain only as migration seeds and are not written at
 runtime.
+
+Analytics uses random browser and session identifiers. It does not persist raw
+IP addresses, names, or full user-agent strings. A “visitor” is therefore an
+approximate unique browser rather than a verified individual. Browsers with Do
+Not Track enabled are excluded.
 
 The migration seeds Egyptian governorates and city/area names from
 `sabrysuleiman/Egypt-Governorates-Cities-JSON` (GPL-3.0). Commercial shipping

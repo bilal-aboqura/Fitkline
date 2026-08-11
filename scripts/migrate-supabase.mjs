@@ -147,6 +147,12 @@ try {
     grant usage, select on all sequences in schema public to service_role;
   `);
 
+  const analyticsSchema = await readFile(
+    new URL("./analytics-schema.sql", import.meta.url),
+    "utf8",
+  );
+  await client.query(analyticsSchema);
+
   const content = JSON.parse(
     await readFile(new URL("../data/cms-content.json", import.meta.url), "utf8"),
   );

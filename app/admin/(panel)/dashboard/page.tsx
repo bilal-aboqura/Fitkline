@@ -3,11 +3,16 @@ import { getCmsContent } from "@/lib/cms-store";
 import { getOrders } from "@/lib/order-store";
 import { getKashierConfiguration } from "@/lib/kashier";
 import { getSupabaseConfiguration } from "@/lib/supabase-server";
+import { getAnalyticsSummary } from "@/lib/analytics-store";
 
 export const metadata = { title: "نظرة عامة" };
 
 export default async function AdminDashboardPage() {
-  const [content, orders] = await Promise.all([getCmsContent(), getOrders()]);
+  const [content, orders, analytics] = await Promise.all([
+    getCmsContent(),
+    getOrders(),
+    getAnalyticsSummary(7),
+  ]);
   const paidOrders = orders.filter((order) => order.paymentStatus === "paid");
   const openOrders = orders.filter(
     (order) => !["completed", "cancelled"].includes(order.orderStatus),
@@ -18,6 +23,7 @@ export default async function AdminDashboardPage() {
   );
   const kashier = getKashierConfiguration();
   const supabase = getSupabaseConfiguration();
+  const todayVisitors = analytics.daily.at(-1)?.visitors ?? 0;
 
   return (
     <>
@@ -34,7 +40,7 @@ export default async function AdminDashboardPage() {
         <article><span>إجمالي الطلبات</span><strong>{orders.length}</strong><small>من أول تشغيل الداشبورد</small></article>
         <article><span>طلبات مفتوحة</span><strong>{openOrders.length}</strong><small>تحتاج متابعة أو تنفيذ</small></article>
         <article><span>تحصيل كاشير</span><strong dir="ltr">{revenue.toLocaleString("en-US")}</strong><small>جنيه مصري مدفوع ومسجل</small></article>
-        <article><span>المنتجات النشطة</span><strong>{content.products.filter((p) => p.active).length}</strong><small>من أصل {content.products.length} منتجات</small></article>
+        <article><span>زوار اليوم</span><strong>{todayVisitors}</strong><small>{analytics.available ? "متصفحات فريدة تقريبًا" : "فعّل قاعدة بيانات التحليلات"}</small></article>
       </section>
 
       <div className="admin-dashboard-grid">

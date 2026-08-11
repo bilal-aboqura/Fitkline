@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "db:migrate": "node scripts/migrate-supabase.mjs"
+    "db:migrate": "node scripts/migrate-supabase.mjs",
+    "db:migrate:analytics": "node scripts/migrate-analytics.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0",

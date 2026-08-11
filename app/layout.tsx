@@ -3,6 +3,8 @@ import { Alexandria, Lalezar } from "next/font/google";
 import { CartProvider } from "@/components/commerce/cart-provider";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
+import { SiteAnalytics } from "@/components/analytics/site-analytics";
+import { MetaPixel } from "@/components/analytics/meta-pixel";
 import { getCmsContent } from "@/lib/cms-store";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
@@ -57,6 +59,8 @@ export default async function RootLayout({
     <html lang="ar" dir="rtl">
       <body className={`${alexandria.variable} ${lalezar.variable}`}>
         <CartProvider>
+          <SiteAnalytics />
+          <MetaPixel />
           <a className="skip-link" href="#main-content">تخطّي إلى المحتوى</a>
           <SiteHeader settings={content.settings} links={content.navigation} />
           {children}
