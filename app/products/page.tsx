@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { formatProductPrice, getActiveProductVariants } from "@/data/products";
 import { getCmsProducts } from "@/lib/cms-store";
 
 export const metadata: Metadata = {
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 
 export default async function ProductsPage() {
   const products = await getCmsProducts();
+  const variants = getActiveProductVariants(products);
 
   return (
     <main id="main-content" className="standard-page catalog-page--redesign">
@@ -18,13 +20,13 @@ export default async function ProductsPage() {
         <div className="fit-container page-hero__layout">
           <div className="page-hero__inner">
             <h1>
-              اختار الحل المناسب
+              اختار العبوة المناسبة
               <br />
               <span>لمكانك.</span>
             </h1>
             <p>
-              من الأجهزة للأرضيات والرائحة العامة، كل منتج له دور واضح داخل
-              روتين العناية بالمنشأة الرياضية.
+              كل عبوة 4 كجم و20 كجم ليها صفحة مستقلة بسعرها وصورتها وتوفرها،
+              عشان توصل لاختيارك مباشرة.
             </p>
           </div>
         </div>
@@ -37,32 +39,32 @@ export default async function ProductsPage() {
         <div className="fit-container">
           <div className="catalog-intro">
             <div>
-              <p className="section-heading__kicker">نقاط البداية</p>
+              <p className="section-heading__kicker">العبوات المتاحة</p>
               <h2 id="catalog-title">
-                ثلاثة أدوار.
+                ثلاثة منتجات.
                 <br />
-                <span>منظومة واحدة.</span>
+                <span>عبوتان لكل منتج.</span>
               </h2>
             </div>
             <p>
-              الأحجام المعروضة: 4 كجم و20 كجم. السعر والتوافر يتأكدوا
-              حسب الكمية وطريقة الاستخدام.
+              افتح صفحة العبوة المطلوبة مباشرة. أي سعر يتم تحديثه من لوحة الإدارة
+              يظهر هنا وفي صفحة العبوة.
             </p>
           </div>
           <div className="catalog-grid catalog-grid--redesign">
-            {products.map((product) => (
+            {variants.map(({ product, size, href, image }, index) => (
               <article
                 className="catalog-card catalog-card--redesign"
-                key={product.slug}
+                key={`${product.slug}-${size.id}`}
               >
                 <div className="catalog-card__visual">
                   <div className="catalog-card__meta" dir="ltr">
-                    <span>{product.step} / 03</span>
-                    <span>FITKLINE</span>
+                    <span>{String(index + 1).padStart(2, "0")} / {String(variants.length).padStart(2, "0")}</span>
+                    <span>{size.id.toUpperCase()} · FITKLINE</span>
                   </div>
                   <Image
-                    src={product.catalogImage}
-                    alt={product.imageAlt}
+                    src={image}
+                    alt={`${product.imageAlt} — ${size.label}`}
                     width={560}
                     height={720}
                     sizes="(max-width: 760px) 90vw, 30vw"
@@ -72,7 +74,7 @@ export default async function ProductsPage() {
                   <p className="catalog-card__category">{product.category}</p>
                   <div className="catalog-card__heading">
                     <h2 dir="ltr">{product.name}</h2>
-                    <span>{product.action}</span>
+                    <span dir="ltr">{size.label}</span>
                   </div>
                   <p>{product.shortDescription}</p>
                   <ul>
@@ -81,12 +83,13 @@ export default async function ProductsPage() {
                     ))}
                   </ul>
                   <div className="catalog-card__bottom">
-                    <span>4 كجم · 20 كجم</span>
-                    <Link
-                      className="fit-button-primary"
-                      href={`/products/${product.slug}`}
-                    >
-                      شوف التفاصيل
+                    <strong>
+                      {typeof size.price === "number"
+                        ? formatProductPrice(size.price)
+                        : product.priceLabel}
+                    </strong>
+                    <Link className="fit-button-primary" href={href}>
+                      شوف عبوة {size.label}
                     </Link>
                   </div>
                 </div>

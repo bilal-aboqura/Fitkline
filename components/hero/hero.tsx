@@ -1,180 +1,73 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { HomeContent } from "@/lib/cms-store";
 
-const COPY_SCRUB_SECONDS = 1.05;
-const VIDEO_DAMPING = 10;
-const VIDEO_END_PADDING = 0.08;
-const DESKTOP_SEQUENCE_VIEWPORTS = 3.2;
-const MOBILE_SEQUENCE_VIEWPORTS = 2.6;
-const MOBILE_MEDIA_QUERY = "(max-width: 760px)";
-
-const getHeroAnimationEnd = () => {
-  const sequenceViewports = window.matchMedia(MOBILE_MEDIA_QUERY).matches
-    ? MOBILE_SEQUENCE_VIEWPORTS
-    : DESKTOP_SEQUENCE_VIEWPORTS;
-
-  return `+=${Math.round(window.innerHeight * sequenceViewports)}`;
-};
-
 export function Hero({ scenes }: { scenes: HomeContent["heroScenes"] }) {
-  const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const copyRef = useRef<HTMLDivElement>(null);
-  const progressRef = useRef<HTMLSpanElement>(null);
+  const [activeScene, setActiveScene] = useState(0);
+  const [videoProgress, setVideoProgress] = useState(0);
 
   useEffect(() => {
-    gsap.registerPlugin(ScrollTrigger);
-
-    const section = sectionRef.current;
     const video = videoRef.current;
-    const copy = copyRef.current;
-    const progress = progressRef.current;
-    let removeMetadataListener: (() => void) | undefined;
-    let videoScrollTrigger: ScrollTrigger | undefined;
-    let videoTicker: gsap.TickerCallback | undefined;
+    if (!video) return;
 
-    if (!section || !video || !copy || !progress) return;
-
-    const reduceMotion = window.matchMedia(
+    const motionPreference = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
-    ).matches;
+    );
 
-    if (reduceMotion) {
-      video.currentTime = 0;
+    const syncPlaybackPreference = () => {
+      if (motionPreference.matches) {
+        video.pause();
+        video.currentTime = 0;
+        setActiveScene(0);
+        setVideoProgress(1);
+        return;
+      }
+
+      void video.play().catch(() => {
+        // Muted autoplay is widely supported. The poster remains visible if a
+        // browser or device policy still prevents playback.
+      });
+    };
+
+    syncPlaybackPreference();
+    motionPreference.addEventListener("change", syncPlaybackPreference);
+
+    return () =>
+      motionPreference.removeEventListener("change", syncPlaybackPreference);
+  }, []);
+
+  function handleTimeUpdate() {
+    const video = videoRef.current;
+    if (!video || !Number.isFinite(video.duration) || video.duration <= 0) {
       return;
     }
 
-    const context = gsap.context(() => {
-      const scenes = gsap.utils.toArray<HTMLElement>("[data-hero-scene]");
+    const progress = Math.min(1, video.currentTime / video.duration);
+    const nextScene = Math.min(
+      scenes.length - 1,
+      Math.floor(progress * scenes.length),
+    );
 
-      gsap.set(scenes, { autoAlpha: 0, force3D: true, xPercent: 96 });
-      gsap.set(scenes[0], { autoAlpha: 1, force3D: true, xPercent: 0 });
-      gsap.set(progress, { scaleX: 0, transformOrigin: "right center" });
-
-      const copyTimeline = gsap.timeline({
-        defaults: { ease: "power3.inOut" },
-        scrollTrigger: {
-          trigger: section,
-          start: "top top",
-          end: getHeroAnimationEnd,
-          scrub: COPY_SCRUB_SECONDS,
-          invalidateOnRefresh: true,
-        },
-      });
-
-      copyTimeline
-        .to(
-          scenes[0],
-          { autoAlpha: 0, force3D: true, xPercent: -96, duration: 0.9 },
-          0.82,
-        )
-        .fromTo(
-          scenes[1],
-          { autoAlpha: 0, force3D: true, xPercent: 96 },
-          { autoAlpha: 1, force3D: true, xPercent: 0, duration: 1.15 },
-          0.82,
-        )
-        .to(
-          scenes[1],
-          { autoAlpha: 0, force3D: true, xPercent: -96, duration: 0.9 },
-          2.62,
-        )
-        .fromTo(
-          scenes[2],
-          { autoAlpha: 0, force3D: true, xPercent: 96 },
-          { autoAlpha: 1, force3D: true, xPercent: 0, duration: 1.15 },
-          2.62,
-        )
-        .to({}, { duration: 0.8 });
-
-      gsap.to(progress, {
-        scaleX: 1,
-        ease: "none",
-        scrollTrigger: {
-          trigger: section,
-          start: "top top",
-          end: getHeroAnimationEnd,
-          scrub: 0.45,
-          invalidateOnRefresh: true,
-        },
-      });
-
-      const createVideoController = () => {
-        const duration = Number.isFinite(video.duration) ? video.duration : 8;
-        const playableDuration = Math.max(0, duration - VIDEO_END_PADDING);
-        let targetTime = 0;
-        let renderedTime = 0;
-
-        video.pause();
-        video.currentTime = 0;
-
-        videoScrollTrigger = ScrollTrigger.create({
-          trigger: section,
-          start: "top top",
-          end: getHeroAnimationEnd,
-          invalidateOnRefresh: true,
-          onUpdate: ({ progress: scrollProgress }) => {
-            targetTime = playableDuration * scrollProgress;
-          },
-        });
-
-        videoTicker = (_time, deltaTime) => {
-          const frameSeconds = Math.min(deltaTime / 1000, 0.05);
-          const blend = 1 - Math.exp(-VIDEO_DAMPING * frameSeconds);
-
-          renderedTime += (targetTime - renderedTime) * blend;
-
-          if (
-            video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
-            Math.abs(video.currentTime - renderedTime) > 0.004
-          ) {
-            video.currentTime = renderedTime;
-          }
-        };
-
-        gsap.ticker.add(videoTicker);
-
-        ScrollTrigger.refresh();
-      };
-
-      if (video.readyState >= 1) {
-        createVideoController();
-      } else {
-        video.addEventListener("loadedmetadata", createVideoController, {
-          once: true,
-        });
-        removeMetadataListener = () =>
-          video.removeEventListener("loadedmetadata", createVideoController);
-      }
-    }, section);
-
-    return () => {
-      removeMetadataListener?.();
-      videoScrollTrigger?.kill();
-      if (videoTicker) gsap.ticker.remove(videoTicker);
-      context.revert();
-    };
-  }, []);
+    setVideoProgress(progress);
+    setActiveScene(nextScene);
+  }
 
   return (
-    <section
-      className="hero-scroll"
-      ref={sectionRef}
-      aria-labelledby="hero-title"
-    >
+    <section className="hero-scroll" aria-labelledby="hero-title">
       <div className="hero-scroll__stage">
         <video
           className="hero-scroll__video"
           ref={videoRef}
           poster="/images/fitkline-hero.png"
-          preload="metadata"
+          preload="auto"
+          autoPlay
+          loop
           muted
           playsInline
+          onTimeUpdate={handleTimeUpdate}
           aria-hidden="true"
           tabIndex={-1}
         >
@@ -192,12 +85,12 @@ export function Hero({ scenes }: { scenes: HomeContent["heroScenes"] }) {
         <div className="hero-scroll__shade" aria-hidden="true" />
         <div className="hero-scroll__vignette" aria-hidden="true" />
 
-        <div className="hero-scroll__copy" ref={copyRef}>
+        <div className="hero-scroll__copy">
           {scenes.map((scene, index) => (
             <article
-              className="hero-scroll__scene"
-              data-hero-scene
+              className={`hero-scroll__scene${index === activeScene ? " is-active" : ""}`}
               key={scene.label}
+              aria-hidden={index !== activeScene}
             >
               <p className="hero-scroll__label">{scene.label}</p>
               {index === 0 ? (
@@ -225,11 +118,12 @@ export function Hero({ scenes }: { scenes: HomeContent["heroScenes"] }) {
         </div>
 
         <div className="hero-scroll__hud" aria-hidden="true">
-          <span className="hero-scroll__counter">01 — 03</span>
-          <span className="hero-scroll__line">
-            <span ref={progressRef} />
+          <span className="hero-scroll__counter">
+            {String(activeScene + 1).padStart(2, "0")} — {String(scenes.length).padStart(2, "0")}
           </span>
-          <span className="hero-scroll__hint">اسحب لتكمل المشهد</span>
+          <span className="hero-scroll__line">
+            <span style={{ transform: `scaleX(${videoProgress})` }} />
+          </span>
         </div>
       </div>
     </section>

@@ -1,6 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { Product } from "@/data/products";
+import {
+  formatProductPrice,
+  getActiveProductVariants,
+  type Product,
+} from "@/data/products";
 import type { HomeContent } from "@/lib/cms-store";
 
 export function ProductDirectory({
@@ -10,6 +14,8 @@ export function ProductDirectory({
   products: Product[];
   content: HomeContent["directory"];
 }) {
+  const variants = getActiveProductVariants(products);
+
   return (
     <section className="product-directory product-directory--redesign" aria-labelledby="product-directory-title">
       <div className="fit-container">
@@ -21,22 +27,20 @@ export function ProductDirectory({
               <span>{content.accent}</span>
             </h2>
           </div>
-          <p className="product-directory__lead">
-            {content.lead}
-          </p>
+          <p className="product-directory__lead">{content.lead}</p>
         </div>
 
         <div className="product-directory__grid">
-          {products.map((product, index) => (
-            <article className="product-card product-card--editorial" key={product.slug}>
+          {variants.map(({ product, size, href, image }, index) => (
+            <article className="product-card product-card--editorial" key={`${product.slug}-${size.id}`}>
               <div className="product-card__visual">
                 <div className="product-card__visual-meta" dir="ltr">
-                  <span>{product.step} / 03</span>
-                  <span>{index === 0 ? "START HERE" : "FITKLINE SYSTEM"}</span>
+                  <span>{String(index + 1).padStart(2, "0")} / {String(variants.length).padStart(2, "0")}</span>
+                  <span>{size.id.toUpperCase()} · FITKLINE</span>
                 </div>
                 <Image
-                  src={product.image}
-                  alt={product.imageAlt}
+                  src={image}
+                  alt={`${product.imageAlt} — ${size.label}`}
                   width={560}
                   height={720}
                   sizes="(max-width: 760px) 90vw, (max-width: 1100px) 44vw, 31vw"
@@ -49,7 +53,7 @@ export function ProductDirectory({
                     <p className="product-card__category">{product.category}</p>
                     <h3 dir="ltr">{product.name}</h3>
                   </div>
-                  <span className="product-card__action">{product.action}</span>
+                  <span className="product-card__action" dir="ltr">{size.label}</span>
                 </div>
 
                 <p className="product-card__description">{product.shortDescription}</p>
@@ -58,15 +62,17 @@ export function ProductDirectory({
                   {product.benefits.slice(0, 2).map((benefit) => <li key={benefit}>{benefit}</li>)}
                 </ul>
 
-                <div className="product-card__sizes" aria-label="الأحجام المتاحة">
-                  <span>الأحجام</span>
-                  <div dir="ltr">
-                    {product.sizes.map((size) => <b key={size.id}>{size.label}</b>)}
-                  </div>
+                <div className="product-card__sizes" aria-label="سعر العبوة">
+                  <span>السعر</span>
+                  <strong>
+                    {typeof size.price === "number"
+                      ? formatProductPrice(size.price)
+                      : product.priceLabel}
+                  </strong>
                 </div>
 
                 <div className="product-card__footer">
-                  <Link className="fit-button-primary" href={`/products/${product.slug}`}>شوف التفاصيل</Link>
+                  <Link className="fit-button-primary" href={href}>شوف عبوة {size.label}</Link>
                   <Link className="product-card__text-link" href="/contact">اطلب عرض سعر <span aria-hidden="true">←</span></Link>
                 </div>
               </div>
@@ -75,8 +81,8 @@ export function ProductDirectory({
         </div>
 
         <div className="product-directory__base-line">
-          <span>السعر والتوافر بيتأكدوا حسب الكمية والمساحة.</span>
-          <Link href="/products">استكشف المنظومة كاملة <span aria-hidden="true">←</span></Link>
+          <span>كل عبوة ليها صفحة وسعر وتوفر منفصل.</span>
+          <Link href="/products">استكشف كل العبوات <span aria-hidden="true">←</span></Link>
         </div>
       </div>
     </section>

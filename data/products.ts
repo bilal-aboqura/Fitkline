@@ -29,6 +29,50 @@ export type Product = {
   readonly active: boolean;
 };
 
+export type ProductVariant = {
+  readonly product: Product;
+  readonly size: ProductSize;
+  readonly href: string;
+  readonly image: string;
+};
+
+export function getProductVariantHref(
+  slug: string,
+  sizeId: ProductSizeId,
+) {
+  return `/products/${slug}/${sizeId}`;
+}
+
+export function getActiveProductVariants(
+  catalog: readonly Product[],
+): ProductVariant[] {
+  const sizeOrder: readonly ProductSizeId[] = ["4kg", "20kg"];
+
+  return sizeOrder.flatMap((sizeId) =>
+    catalog.flatMap((product) => {
+      const size = product.sizes.find(
+        (candidate) => candidate.id === sizeId && candidate.active,
+      );
+
+      return size
+        ? [{
+        product,
+        size,
+        href: getProductVariantHref(product.slug, size.id),
+        image: product.sizeImages[size.id] ?? product.image,
+          }]
+        : [];
+    }),
+  );
+}
+
+export function formatProductPrice(price: number) {
+  return `${price.toLocaleString("ar-EG", {
+    minimumFractionDigits: price % 1 ? 2 : 0,
+    maximumFractionDigits: 2,
+  })} ج.م`;
+}
+
 const sizes: readonly ProductSize[] = [
   { id: "4kg", label: "4 كجم", price: null, stock: null, active: true },
   { id: "20kg", label: "20 كجم", price: null, stock: null, active: true },

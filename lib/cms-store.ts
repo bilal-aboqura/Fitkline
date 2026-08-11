@@ -267,3 +267,18 @@ export async function getCmsProduct(slug: string) {
   const products = await getCmsProducts();
   return products.find((product) => product.slug === slug);
 }
+
+export async function getCmsProductVariant(
+  slug: string,
+  sizeId: string,
+) {
+  const product = await getCmsProduct(slug);
+  if (!product) return undefined;
+
+  const size = product.sizes.find(
+    (candidate) => candidate.id === sizeId && candidate.active,
+  );
+  if (!size) return undefined;
+
+  return { product, size };
+}

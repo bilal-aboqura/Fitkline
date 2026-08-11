@@ -1,34 +1,37 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useCart } from "@/components/commerce/cart-provider";
-import type { Product, ProductSize } from "@/data/products";
+import {
+  formatProductPrice,
+  getProductVariantHref,
+  type Product,
+  type ProductSize,
+} from "@/data/products";
 
 type ProductPurchaseProps = {
   product: Product;
-  selectedSize?: ProductSize;
-  onSizeChange?: (size: ProductSize) => void;
+  size: ProductSize;
 };
 
-export function ProductPurchase({ product, selectedSize: controlledSize, onSizeChange }: ProductPurchaseProps) {
+export function ProductPurchase({ product, size }: ProductPurchaseProps) {
   const { addItem } = useCart();
-  const [internalSize, setInternalSize] = useState(product.sizes[0]);
   const [added, setAdded] = useState(false);
-  const selectedSize = controlledSize ?? internalSize;
-
-  function handleSizeChange(size: ProductSize) {
-    onSizeChange?.(size);
-    if (!controlledSize) setInternalSize(size);
-  }
+  const siblingSizes = product.sizes.filter((candidate) => candidate.active);
+  const hasPrice = typeof size.price === "number";
+  const isOutOfStock = size.stock === 0;
 
   function handleAdd() {
+    if (isOutOfStock) return;
+
     addItem({
       slug: product.slug,
       name: product.name,
-      sizeId: selectedSize.id,
-      sizeLabel: selectedSize.label,
-      unitPrice: selectedSize.price,
-      image: product.sizeImages[selectedSize.id] ?? product.image,
+      sizeId: size.id,
+      sizeLabel: size.label,
+      unitPrice: size.price,
+      image: product.sizeImages[size.id] ?? product.image,
     });
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2600);
@@ -38,28 +41,55 @@ export function ProductPurchase({ product, selectedSize: controlledSize, onSizeC
     <div className="purchase-panel" id="purchase-panel">
       <div className="purchase-panel__price">
         <span>السعر</span>
-        <strong>{product.priceLabel}</strong>
+        <strong>{hasPrice ? formatProductPrice(size.price) : product.priceLabel}</strong>
       </div>
 
-      <fieldset className="size-selector">
-        <legend>اختار الحجم</legend>
-        <div className="size-selector__options">
-          {product.sizes.map((size) => (
-            <label className={selectedSize.id === size.id ? "is-selected" : ""} key={size.id}>
-              <input type="radio" name={`${product.slug}-size`} value={size.id} checked={selectedSize.id === size.id} onChange={() => handleSizeChange(size)} />
-              <span>{size.label}</span>
-              <small>تأكيد السعر</small>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <div className="purchase-panel__variant">
+        <span>الحجم</span>
+        <b dir="ltr">{size.label}</b>
+      </div>
 
-      <button className="fit-button-primary purchase-panel__button" type="button" onClick={handleAdd}>
-        {added ? "اتضاف لطلبك ✓" : "أضف لطلبك"}
+      {siblingSizes.length > 1 ? (
+        <nav className="variant-links" aria-label="عبوات المنتج المتاحة">
+          <span>شوف العبوة التانية</span>
+          <div>
+            {siblingSizes.map((candidate) =>
+              candidate.id === size.id ? (
+                <span className="is-current" key={candidate.id} aria-current="page">
+                  {candidate.label}
+                </span>
+              ) : (
+                <Link
+                  key={candidate.id}
+                  href={getProductVariantHref(product.slug, candidate.id)}
+                >
+                  {candidate.label}
+                </Link>
+              ),
+            )}
+          </div>
+        </nav>
+      ) : null}
+
+      <button
+        className="fit-button-primary purchase-panel__button"
+        type="button"
+        onClick={handleAdd}
+        disabled={isOutOfStock}
+      >
+        {isOutOfStock
+          ? "غير متوفر حاليًا"
+          : added
+            ? "اتضاف لطلبك ✓"
+            : "أضف لطلبك"}
       </button>
-      <p className="purchase-panel__note" aria-live="polite">
-        {added ? "تقدر تراجع اختياراتك في السلة أو تكمل إضافة منتجات أخرى." : "السعر والتوفر يتم تأكيدهما قبل تنفيذ الطلب."}
-      </p>
+      {added || !hasPrice ? (
+        <p className="purchase-panel__note" aria-live="polite">
+          {added
+            ? "تقدر تراجع اختيارك في السلة أو تكمل إضافة منتجات تانية."
+            : "السعر والتوفر بيتم تأكيدهم قبل تنفيذ الطلب."}
+        </p>
+      ) : null}
     </div>
   );
 }

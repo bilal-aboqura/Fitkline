@@ -61,15 +61,16 @@ main {
 
 .hero-scroll {
   position: relative;
-  height: 560svh;
+  height: 100svh;
+  min-height: 680px;
   background: var(--fit-bg);
 }
 
 .hero-scroll__stage {
   isolation: isolate;
-  position: sticky;
-  top: 0;
-  height: 100svh;
+  position: relative;
+  height: 100%;
+  min-height: inherit;
   width: 100%;
   overflow: hidden;
   background: var(--fit-bg);
@@ -153,13 +154,23 @@ main {
   width: min(900px, 72vw);
   flex-direction: column;
   align-items: flex-start;
-  transform: translateY(-50%);
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(8%, -50%);
+  transition:
+    opacity 480ms var(--fit-ease),
+    transform 620ms var(--fit-ease),
+    visibility 0s linear 620ms;
   will-change: transform, opacity;
 }
 
-.hero-scroll__scene:not(:first-child) {
-  visibility: hidden;
-  opacity: 0;
+.hero-scroll__scene.is-active {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(0, -50%);
+  transition-delay: 0s;
 }
 
 .hero-scroll__label {
@@ -215,7 +226,7 @@ main {
   bottom: 28px;
   left: max(20px, calc((100vw - 1600px) / 2));
   display: grid;
-  grid-template-columns: auto minmax(100px, 220px) auto;
+  grid-template-columns: auto minmax(100px, 220px);
   align-items: center;
   justify-content: start;
   gap: 16px;
@@ -243,6 +254,8 @@ main {
   inset: 0;
   display: block;
   background: var(--fit-neon);
+  transform-origin: left center;
+  transition: transform 180ms linear;
 }
 
 .hero-scroll__hint {
@@ -251,7 +264,8 @@ main {
 
 @media (max-width: 760px) {
   .hero-scroll {
-    height: 500svh;
+    height: 100svh;
+    min-height: 720px;
   }
 
   .hero-scroll__video {
@@ -304,6 +318,10 @@ main {
     right: 0;
     bottom: 108px;
     width: 100%;
+    transform: translateY(18px);
+  }
+
+  .hero-scroll__scene.is-active {
     transform: none;
   }
 
@@ -356,17 +374,15 @@ main {
 
 @media (prefers-reduced-motion: reduce) {
   .hero-scroll {
-    height: 100svh;
+    min-height: 680px;
   }
 
-  .hero-scroll__stage {
-    position: relative;
-  }
-
-  .hero-scroll__scene:first-child {
+  .hero-scroll__scene:first-child,
+  .hero-scroll__scene:first-child.is-active {
     visibility: visible !important;
     opacity: 1 !important;
     transform: translateY(-50%) !important;
+    transition: none;
   }
 
   .hero-scroll__scene:not(:first-child) {
@@ -1806,7 +1822,54 @@ textarea:focus-visible {
 }
 .purchase-panel__price strong {
   color: var(--fit-neon);
-  font-size: 0.95rem;
+  font-size: clamp(1rem, 0.94rem + 0.3vw, 1.2rem);
+  font-variant-numeric: tabular-nums;
+}
+.purchase-panel__variant {
+  display: flex;
+  min-height: 58px;
+  padding-block: 16px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid rgba(184, 190, 196, 0.16);
+  color: var(--fit-silver);
+}
+.purchase-panel__variant b {
+  color: var(--fit-white);
+  font-size: 1.1rem;
+}
+.variant-links {
+  display: flex;
+  margin-top: 18px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--fit-silver);
+  font-size: 0.85rem;
+}
+.variant-links > div {
+  display: flex;
+  gap: 8px;
+}
+.variant-links a,
+.variant-links .is-current {
+  display: inline-flex;
+  min-width: 64px;
+  min-height: 44px;
+  padding-inline: 12px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--fit-border);
+  border-radius: 7px;
+  color: var(--fit-white);
+  text-decoration: none;
+}
+.variant-links a:hover,
+.variant-links a:focus-visible,
+.variant-links .is-current {
+  border-color: var(--fit-neon);
+  color: var(--fit-neon);
 }
 .size-selector {
   margin: 22px 0 0;
@@ -1851,6 +1914,12 @@ textarea:focus-visible {
   margin-top: 20px;
   border: 0;
   cursor: pointer;
+}
+.purchase-panel__button:disabled {
+  background: #343b35;
+  color: #aab2ac;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 .purchase-panel__note {
   margin: 14px 0 0;
@@ -2832,7 +2901,7 @@ body {
 }
 .product-detail-hero__signals {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 14px;
 }
@@ -2910,7 +2979,7 @@ body {
     gap: 0;
   }
   .product-detail-hero__signals {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -3642,6 +3711,13 @@ body {
   border-top: 1px solid rgba(184, 190, 196, 0.17);
   color: #88948c;
   font-size: 0.875rem;
+}
+
+.product-card__sizes strong,
+.catalog-card__bottom strong {
+  color: var(--fit-neon);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .product-card__sizes > div {
