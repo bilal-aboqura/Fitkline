@@ -12,6 +12,7 @@ import {
   saleCampaign,
 } from "@/data/campaign";
 import type { ShippingGovernorate } from "@/lib/shipping-store";
+import { phoneComparisonKey } from "@/lib/phone";
 
 function money(value: number) {
   return `${value.toLocaleString("ar-EG", {
@@ -33,6 +34,7 @@ export function CheckoutForm({
   const [submitted, setSubmitted] = useState(false);
   const [reference, setReference] = useState("");
   const [error, setError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [governorateId, setGovernorateId] = useState("");
   const [cityId, setCityId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "kashier">(
@@ -137,16 +139,30 @@ export function CheckoutForm({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    setLoading(true);
+    setPhoneError("");
     const formData = new FormData(event.currentTarget);
+    const phone = formData.get("phone");
+    const alternatePhone = formData.get("alternatePhone");
+    if (
+      phoneComparisonKey(phone) &&
+      phoneComparisonKey(phone) === phoneComparisonKey(alternatePhone)
+    ) {
+      setPhoneError("لازم رقم الموبايل البديل يكون مختلف عن الرقم الأساسي.");
+      const alternatePhoneInput = event.currentTarget.elements.namedItem(
+        "alternatePhone",
+      );
+      if (alternatePhoneInput instanceof HTMLElement) alternatePhoneInput.focus();
+      return;
+    }
+    setLoading(true);
     try {
       const response = await fetch("/api/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.get("name"),
-          phone: formData.get("phone"),
-          alternatePhone: formData.get("alternatePhone"),
+          phone,
+          alternatePhone,
           email: formData.get("email"),
           governorateId,
           cityId: Number(cityId),
@@ -227,6 +243,9 @@ export function CheckoutForm({
               type="tel"
               inputMode="tel"
               autoComplete="tel"
+              onChange={() => {
+                if (phoneError) setPhoneError("");
+              }}
             />
           </label>
           <label>
@@ -237,7 +256,17 @@ export function CheckoutForm({
               type="tel"
               inputMode="tel"
               autoComplete="off"
+              aria-invalid={phoneError ? true : undefined}
+              aria-describedby={phoneError ? "alternate-phone-error" : undefined}
+              onChange={() => {
+                if (phoneError) setPhoneError("");
+              }}
             />
+            {phoneError ? (
+              <small id="alternate-phone-error" className="form-error">
+                {phoneError}
+              </small>
+            ) : null}
           </label>
           <label>
             <span>البريد الإلكتروني</span>

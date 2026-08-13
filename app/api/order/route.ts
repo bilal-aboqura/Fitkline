@@ -7,6 +7,7 @@ import { resolveShippingLocation } from "@/lib/shipping-store";
 import { isCustomerEligibleForSale } from "@/lib/campaign-store";
 import { notifyTelegramAboutNewOrder } from "@/lib/telegram";
 import { getDiscountedPrice, saleCampaign } from "@/data/campaign";
+import { phoneComparisonKey } from "@/lib/phone";
 import {
   createOrder,
   updateOrder,
@@ -40,6 +41,15 @@ export async function POST(request: Request) {
     if (missing.length) {
       return NextResponse.json(
         { error: "من فضلك كمّل بيانات التواصل والعنوان.", missing },
+        { status: 400 },
+      );
+    }
+    if (
+      phoneComparisonKey(customer.phone) ===
+      phoneComparisonKey(customer.alternatePhone)
+    ) {
+      return NextResponse.json(
+        { error: "لازم رقم الموبايل البديل يكون مختلف عن الرقم الأساسي." },
         { status: 400 },
       );
     }

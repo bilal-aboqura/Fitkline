@@ -5,15 +5,12 @@ import {
   type SaleCampaignStatus,
 } from "@/data/campaign";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
+import { phoneComparisonKey } from "@/lib/phone";
 
 type CampaignOrderRow = {
   customer: { phone?: unknown } | null;
   order_status: string;
 };
-
-function normalizePhone(value: unknown) {
-  return typeof value === "string" ? value.replace(/\D/g, "") : "";
-}
 
 async function getCampaignCustomerPhones() {
   const { data, error } = await getSupabaseServerClient()
@@ -26,7 +23,7 @@ async function getCampaignCustomerPhones() {
 
   return new Set(
     ((data ?? []) as CampaignOrderRow[])
-      .map((order) => normalizePhone(order.customer?.phone))
+      .map((order) => phoneComparisonKey(order.customer?.phone))
       .filter(Boolean),
   );
 }
@@ -73,7 +70,7 @@ export async function isCustomerEligibleForSale(phone: string) {
 
   try {
     const phones = await getCampaignCustomerPhones();
-    const normalizedPhone = normalizePhone(phone);
+    const normalizedPhone = phoneComparisonKey(phone);
     return (
       phones.has(normalizedPhone) || phones.size < saleCampaign.customerLimit
     );
