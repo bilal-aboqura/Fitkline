@@ -1,4 +1,4 @@
-# Fitkline Admin & Kashier Setup
+# Fitkline Admin, Payments & Notifications Setup
 
 ## 1. Environment
 
@@ -14,6 +14,9 @@ KASHIER_MERCHANT_ID=
 KASHIER_API_KEY=
 KASHIER_SECRET_KEY=
 KASHIER_MODE=test
+
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
 
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
@@ -70,7 +73,18 @@ Kashier is shown at checkout only when:
 
 No raw card data is submitted to or stored by Fitkline.
 
-## 4. Storage
+## 4. Telegram order notifications
+
+Set `TELEGRAM_BOT_TOKEN` to the token for the existing bot and
+`TELEGRAM_CHAT_ID` to the private chat, group, or channel that should receive
+orders. Add the bot to that destination and give it permission to post there.
+
+After an order is saved, Fitkline sends an Arabic notification containing the
+reference, customer and delivery details, products, totals, and payment state.
+If Telegram is unavailable, the saved customer order remains successful and
+the notification error is recorded in the server logs.
+
+## 5. Storage
 
 - CMS content and products: `fitkline_cms_documents`
 - Orders: `fitkline_orders`

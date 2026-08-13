@@ -5,6 +5,7 @@ import { createKashierSession, getKashierConfiguration } from "@/lib/kashier";
 import { getSiteOrigin } from "@/lib/site-url";
 import { resolveShippingLocation } from "@/lib/shipping-store";
 import { isCustomerEligibleForSale } from "@/lib/campaign-store";
+import { notifyTelegramAboutNewOrder } from "@/lib/telegram";
 import { getDiscountedPrice, saleCampaign } from "@/data/campaign";
 import {
   createOrder,
@@ -159,6 +160,14 @@ export async function POST(request: Request) {
       paymentStatus: paymentMethod === "kashier" ? "pending" : "not-required",
     };
     await createOrder(order);
+    try {
+      await notifyTelegramAboutNewOrder(order);
+    } catch (error) {
+      console.error(
+        `[telegram] Failed to notify about ${reference}:`,
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    }
 
     if (paymentMethod === "kashier") {
       try {
