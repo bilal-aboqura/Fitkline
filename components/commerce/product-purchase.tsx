@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { trackMetaEvent } from "@/components/analytics/meta-events";
 import { useCart } from "@/components/commerce/cart-provider";
 import {
   formatProductPrice,
@@ -22,6 +23,16 @@ export function ProductPurchase({ product, size }: ProductPurchaseProps) {
   const hasPrice = typeof size.price === "number";
   const isOutOfStock = size.stock === 0;
 
+  useEffect(() => {
+    trackMetaEvent("ViewContent", {
+      content_ids: [`${product.slug}-${size.id}`],
+      content_name: `${product.name} ${size.label}`,
+      content_type: "product",
+      currency: "EGP",
+      ...(typeof size.price === "number" ? { value: size.price } : {}),
+    });
+  }, [product.name, product.slug, size.id, size.label, size.price]);
+
   function handleAdd() {
     if (isOutOfStock) return;
 
@@ -32,6 +43,18 @@ export function ProductPurchase({ product, size }: ProductPurchaseProps) {
       sizeLabel: size.label,
       unitPrice: size.price,
       image: product.sizeImages[size.id] ?? product.image,
+    });
+    trackMetaEvent("AddToCart", {
+      content_ids: [`${product.slug}-${size.id}`],
+      content_name: `${product.name} ${size.label}`,
+      content_type: "product",
+      contents: [{
+        id: `${product.slug}-${size.id}`,
+        quantity: 1,
+        ...(typeof size.price === "number" ? { item_price: size.price } : {}),
+      }],
+      currency: "EGP",
+      ...(typeof size.price === "number" ? { value: size.price } : {}),
     });
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2600);

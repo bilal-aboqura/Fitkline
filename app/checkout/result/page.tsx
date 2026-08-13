@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { findOrder, updateOrder } from "@/lib/order-store";
 import { inspectKashierPayment, verifyKashierSession } from "@/lib/kashier";
+import { MetaPurchaseEvent } from "@/components/analytics/meta-purchase-event";
 
 export const metadata = { title: "نتيجة الدفع" };
 
@@ -46,6 +47,14 @@ export default async function CheckoutResultPage({
 
   return (
     <main id="main-content" className="standard-page">
+      {paid && order && order.total !== null ? (
+        <MetaPurchaseEvent
+          reference={order.reference}
+          value={order.total}
+          currency={order.currency}
+          items={order.items}
+        />
+      ) : null}
       <section className="page-hero page-hero--redesign page-hero--compact">
         <div className="fit-container page-hero__inner">
           <p className="section-heading__kicker" dir="ltr">KASHIER / PAYMENT</p>

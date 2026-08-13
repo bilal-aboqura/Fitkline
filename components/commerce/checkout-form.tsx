@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { trackMetaEvent } from "@/components/analytics/meta-events";
 import { useCart } from "@/components/commerce/cart-provider";
 import type { ShippingGovernorate } from "@/lib/shipping-store";
 
@@ -29,6 +30,7 @@ export function CheckoutForm({
     paymentOptions.cod ? "cod" : "kashier",
   );
   const [loading, setLoading] = useState(false);
+  const initiatedCheckout = useRef(false);
 
   const governorate = shippingLocations.find(
     (item) => item.id === governorateId,
@@ -50,6 +52,25 @@ export function CheckoutForm({
     subtotal !== null && shippingAmount !== null
       ? subtotal + shippingAmount
       : null;
+
+  useEffect(() => {
+    if (!items.length || initiatedCheckout.current) return;
+    initiatedCheckout.current = true;
+    trackMetaEvent("InitiateCheckout", {
+      content_type: "product",
+      content_ids: items.map((item) => `${item.slug}-${item.sizeId}`),
+      contents: items.map((item) => ({
+        id: `${item.slug}-${item.sizeId}`,
+        quantity: item.quantity,
+        ...(typeof item.unitPrice === "number"
+          ? { item_price: item.unitPrice }
+          : {}),
+      })),
+      currency: "EGP",
+      num_items: items.reduce((sum, item) => sum + item.quantity, 0),
+      ...(subtotal !== null ? { value: subtotal } : {}),
+    });
+  }, [items, subtotal]);
   const kashierAvailable =
     paymentOptions.kashier && total !== null && total > 0;
 
@@ -122,7 +143,25 @@ export function CheckoutForm({
         window.location.assign(result.redirectUrl);
         return;
       }
-      setReference(result.reference ?? "FTK-REQUEST");
+      const orderReference = result.reference ?? "FTK-REQUEST";
+      if (total !== null) {
+        trackMetaEvent("Purchase", {
+          value: total,
+          currency: "EGP",
+          content_type: "product",
+          content_ids: items.map((item) => `${item.slug}-${item.sizeId}`),
+          contents: items.map((item) => ({
+            id: `${item.slug}-${item.sizeId}`,
+            quantity: item.quantity,
+            ...(typeof item.unitPrice === "number"
+              ? { item_price: item.unitPrice }
+              : {}),
+          })),
+          num_items: items.reduce((sum, item) => sum + item.quantity, 0),
+          order_id: orderReference,
+        }, { eventId: `purchase-${orderReference}` });
+      }
+      setReference(orderReference);
       setSubmitted(true);
       clearCart();
     } catch (submitError) {

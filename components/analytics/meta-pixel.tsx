@@ -5,6 +5,7 @@
 import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { flushMetaEventQueue } from "@/components/analytics/meta-events";
 
 const META_PIXEL_ID = "1052393730508570";
 
@@ -29,7 +30,11 @@ export function MetaPixel() {
 
   return (
     <>
-      <Script id="meta-pixel" strategy="afterInteractive">
+      <Script
+        id="meta-pixel"
+        strategy="afterInteractive"
+        onReady={flushMetaEventQueue}
+      >
         {`
           !function(f,b,e,v,n,t,s)
           {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
