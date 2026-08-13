@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { formatProductPrice, getActiveProductVariants } from "@/data/products";
+import { getActiveProductVariants } from "@/data/products";
 import { getCmsProducts } from "@/lib/cms-store";
+import { CampaignBadge } from "@/components/commerce/campaign-badge";
+import { CampaignPrice } from "@/components/commerce/campaign-price";
 
 export const metadata: Metadata = {
   title: "المنتجات",
@@ -60,6 +62,7 @@ export default async function ProductsPage() {
                 style={{ "--mobile-order": mobileOrder } as CSSProperties}
               >
                 <div className="catalog-card__visual">
+                  <CampaignBadge />
                   <Image
                     src={image}
                     alt={`${product.imageAlt} — ${size.label}`}
@@ -81,11 +84,11 @@ export default async function ProductsPage() {
                     ))}
                   </ul>
                   <div className="catalog-card__bottom">
-                    <strong>
-                      {typeof size.price === "number"
-                        ? formatProductPrice(size.price)
-                        : product.priceLabel}
-                    </strong>
+                    <CampaignPrice
+                      compact
+                      price={size.price}
+                      pendingLabel={product.priceLabel}
+                    />
                     <Link className="fit-button-primary" href={href}>
                       شوف عبوة {size.label}
                     </Link>

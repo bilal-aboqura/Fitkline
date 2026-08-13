@@ -37,6 +37,8 @@ export type StoredOrder = {
     sizeLabel: string;
     quantity: number;
     unitPrice: number | null;
+    listUnitPrice?: number;
+    discountPercent?: number;
   }>;
   subtotal: number | null;
   shippingAmount: number | null;

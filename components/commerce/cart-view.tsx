@@ -3,18 +3,38 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/components/commerce/cart-provider";
+import { CampaignPrice } from "@/components/commerce/campaign-price";
+import { useCampaign } from "@/components/commerce/campaign-provider";
+import {
+  getDiscountAmount,
+  isSaleAvailable,
+  saleCampaign,
+} from "@/data/campaign";
 
 export function CartView() {
   const { items, updateQuantity, removeItem } = useCart();
+  const campaignStatus = useCampaign();
+  const saleAvailable = isSaleAvailable(campaignStatus);
   const hasPendingPrice = items.some(
     (item) => typeof item.unitPrice !== "number",
   );
-  const subtotal = hasPendingPrice
+  const listSubtotal = hasPendingPrice
     ? null
     : items.reduce(
         (total, item) => total + (item.unitPrice ?? 0) * item.quantity,
         0,
       );
+  const discount = listSubtotal === null || !saleAvailable
+    ? 0
+    : items.reduce(
+        (total, item) =>
+          total +
+          (typeof item.unitPrice === "number"
+            ? getDiscountAmount(item.unitPrice) * item.quantity
+            : 0),
+        0,
+      );
+  const subtotal = listSubtotal === null ? null : listSubtotal - discount;
 
   if (!items.length) {
     return (
@@ -36,11 +56,11 @@ export function CartView() {
             <div className="cart-item__copy">
               <p dir="ltr">{item.name}</p>
               <h2>{item.sizeLabel}</h2>
-              <span>
-                {typeof item.unitPrice === "number"
-                  ? `${item.unitPrice.toLocaleString("ar-EG")} ج.م`
-                  : "السعر بعد تأكيد التوفر"}
-              </span>
+              <CampaignPrice
+                compact
+                price={typeof item.unitPrice === "number" ? item.unitPrice : null}
+                pendingLabel="السعر بعد تأكيد التوفر"
+              />
             </div>
             <div className="cart-item__controls">
               <label>
@@ -57,6 +77,12 @@ export function CartView() {
         <h2>نأكد التفاصيل معاك.</h2>
         <dl>
           <div><dt>عدد المنتجات</dt><dd>{items.reduce((total, item) => total + item.quantity, 0)}</dd></div>
+          {saleAvailable ? (
+            <div className="cart-summary__discount">
+              <dt>خصم الحملة ({saleCampaign.discountPercent}%)</dt>
+              <dd>{listSubtotal === null ? "يُطبّق بعد التأكيد" : `− ${discount.toLocaleString("ar-EG")} ج.م`}</dd>
+            </div>
+          ) : null}
           <div><dt>المجموع الفرعي</dt><dd>{subtotal === null ? "قيد التأكيد" : `${subtotal.toLocaleString("ar-EG")} ج.م`}</dd></div>
           <div><dt>الشحن</dt><dd>يُحسب حسب المحافظة والمدينة</dd></div>
         </dl>

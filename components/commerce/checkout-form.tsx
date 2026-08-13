@@ -4,6 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { trackMetaEvent } from "@/components/analytics/meta-events";
 import { useCart } from "@/components/commerce/cart-provider";
+import { useCampaign } from "@/components/commerce/campaign-provider";
+import {
+  getDiscountAmount,
+  getDiscountedPrice,
+  isSaleAvailable,
+  saleCampaign,
+} from "@/data/campaign";
 import type { ShippingGovernorate } from "@/lib/shipping-store";
 
 function money(value: number) {
@@ -21,6 +28,8 @@ export function CheckoutForm({
   shippingLocations: ShippingGovernorate[];
 }) {
   const { items, clearCart } = useCart();
+  const campaignStatus = useCampaign();
+  const saleAvailable = isSaleAvailable(campaignStatus);
   const [submitted, setSubmitted] = useState(false);
   const [reference, setReference] = useState("");
   const [error, setError] = useState("");
@@ -42,12 +51,23 @@ export function CheckoutForm({
   const hasPendingPrice = items.some(
     (item) => typeof item.unitPrice !== "number",
   );
-  const subtotal = hasPendingPrice
+  const listSubtotal = hasPendingPrice
     ? null
     : items.reduce(
         (total, item) => total + (item.unitPrice ?? 0) * item.quantity,
         0,
       );
+  const discount = listSubtotal === null || !saleAvailable
+    ? 0
+    : items.reduce(
+        (total, item) =>
+          total +
+          (typeof item.unitPrice === "number"
+            ? getDiscountAmount(item.unitPrice) * item.quantity
+            : 0),
+        0,
+      );
+  const subtotal = listSubtotal === null ? null : listSubtotal - discount;
   const total =
     subtotal !== null && shippingAmount !== null
       ? subtotal + shippingAmount
@@ -63,14 +83,14 @@ export function CheckoutForm({
         id: `${item.slug}-${item.sizeId}`,
         quantity: item.quantity,
         ...(typeof item.unitPrice === "number"
-          ? { item_price: item.unitPrice }
+          ? { item_price: saleAvailable ? getDiscountedPrice(item.unitPrice) : item.unitPrice }
           : {}),
       })),
       currency: "EGP",
       num_items: items.reduce((sum, item) => sum + item.quantity, 0),
       ...(subtotal !== null ? { value: subtotal } : {}),
     });
-  }, [items, subtotal]);
+  }, [items, saleAvailable, subtotal]);
   const kashierAvailable =
     paymentOptions.kashier && total !== null && total > 0;
 
@@ -154,7 +174,7 @@ export function CheckoutForm({
               id: `${item.slug}-${item.sizeId}`,
               quantity: item.quantity,
               ...(typeof item.unitPrice === "number"
-                ? { item_price: item.unitPrice }
+                ? { item_price: saleAvailable ? getDiscountedPrice(item.unitPrice) : item.unitPrice }
                 : {}),
             })),
             num_items: items.reduce((sum, item) => sum + item.quantity, 0),
@@ -271,7 +291,11 @@ export function CheckoutForm({
               </span>
               <span>
                 {typeof item.unitPrice === "number"
-                  ? money(item.unitPrice * item.quantity)
+                  ? money(
+                      (saleAvailable
+                        ? getDiscountedPrice(item.unitPrice)
+                        : item.unitPrice) * item.quantity,
+                    )
                   : "السعر قيد التأكيد"}
               </span>
             </li>
@@ -280,7 +304,17 @@ export function CheckoutForm({
 
         <dl className="checkout-totals">
           <div>
-            <dt>المجموع الفرعي</dt>
+            <dt>إجمالي المنتجات قبل الخصم</dt>
+            <dd>{listSubtotal === null ? "قيد التأكيد" : money(listSubtotal)}</dd>
+          </div>
+          {saleAvailable ? (
+            <div className="checkout-totals__discount">
+              <dt>خصم الحملة ({saleCampaign.discountPercent}%)</dt>
+              <dd>{listSubtotal === null ? "يُطبّق بعد التأكيد" : `− ${money(discount)}`}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt>المنتجات بعد الخصم</dt>
             <dd>{subtotal === null ? "قيد التأكيد" : money(subtotal)}</dd>
           </div>
           <div>

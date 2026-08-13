@@ -90,7 +90,17 @@ export function AdminOrders({ initialOrders }: { initialOrders: StoredOrder[] })
                 </section>
                 <section>
                   <h3>المنتجات</h3>
-                  <ul>{order.items.map((item) => <li key={`${item.slug}-${item.sizeId}`}><span dir="ltr">{item.name}</span><span>{item.sizeLabel} × {item.quantity}</span></li>)}</ul>
+                  <ul>
+                    {order.items.map((item) => (
+                      <li key={`${item.slug}-${item.sizeId}`}>
+                        <span dir="ltr">{item.name}</span>
+                        <span>{item.sizeLabel} × {item.quantity}</span>
+                        {item.discountPercent ? (
+                          <small>خصم الحملة {item.discountPercent}%</small>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
                   <dl>
                     <div><dt>المجموع الفرعي</dt><dd>{order.subtotal === null ? "قيد التأكيد" : `${order.subtotal.toLocaleString("ar-EG")} ج.م`}</dd></div>
                     <div><dt>الشحن</dt><dd>{order.shippingAmount === null ? "قيد التأكيد" : `${order.shippingAmount.toLocaleString("ar-EG")} ج.م`}</dd></div>

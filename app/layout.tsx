@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { Alexandria, Lalezar } from "next/font/google";
 import { CartProvider } from "@/components/commerce/cart-provider";
+import { CampaignProvider } from "@/components/commerce/campaign-provider";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
 import { WhatsAppButton } from "@/components/site/whatsapp-button";
 import { SiteAnalytics } from "@/components/analytics/site-analytics";
 import { MetaPixel } from "@/components/analytics/meta-pixel";
 import { getCmsContent } from "@/lib/cms-store";
+import { getSaleCampaignStatus } from "@/lib/campaign-store";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
@@ -54,22 +56,27 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const content = await getCmsContent();
+  const [content, campaignStatus] = await Promise.all([
+    getCmsContent(),
+    getSaleCampaignStatus(),
+  ]);
 
   return (
     <html lang="ar" dir="rtl">
       <body className={`${alexandria.variable} ${lalezar.variable}`}>
-        <CartProvider>
-          <SiteAnalytics />
-          <MetaPixel />
-          <a className="skip-link" href="#main-content">تخطّي إلى المحتوى</a>
-          <SiteHeader settings={content.settings} links={content.navigation} />
-          {children}
-          <SiteFooter settings={content.settings} links={content.navigation} />
-          <WhatsAppButton
-            phoneNumber={content.settings.whatsapp || "+201150301033"}
-          />
-        </CartProvider>
+        <CampaignProvider status={campaignStatus}>
+          <CartProvider>
+            <SiteAnalytics />
+            <MetaPixel />
+            <a className="skip-link" href="#main-content">تخطّي إلى المحتوى</a>
+            <SiteHeader settings={content.settings} links={content.navigation} />
+            {children}
+            <SiteFooter settings={content.settings} links={content.navigation} />
+            <WhatsAppButton
+              phoneNumber={content.settings.whatsapp || "+201150301033"}
+            />
+          </CartProvider>
+        </CampaignProvider>
       </body>
     </html>
   );

@@ -2,10 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import {
-  formatProductPrice,
   getActiveProductVariants,
   type Product,
 } from "@/data/products";
+import { CampaignBadge } from "@/components/commerce/campaign-badge";
+import { CampaignPrice } from "@/components/commerce/campaign-price";
 import type { HomeContent } from "@/lib/cms-store";
 
 export function ProductDirectory({
@@ -39,6 +40,7 @@ export function ProductDirectory({
               style={{ "--mobile-order": mobileOrder } as CSSProperties}
             >
               <div className="product-card__visual">
+                <CampaignBadge />
                 <Image
                   src={image}
                   alt={`${product.imageAlt} — ${size.label}`}
@@ -65,11 +67,11 @@ export function ProductDirectory({
 
                 <div className="product-card__sizes" aria-label="سعر العبوة">
                   <span>السعر</span>
-                  <strong>
-                    {typeof size.price === "number"
-                      ? formatProductPrice(size.price)
-                      : product.priceLabel}
-                  </strong>
+                  <CampaignPrice
+                    compact
+                    price={size.price}
+                    pendingLabel={product.priceLabel}
+                  />
                 </div>
 
                 <div className="product-card__footer">

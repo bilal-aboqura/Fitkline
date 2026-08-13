@@ -4,6 +4,8 @@ import { getCmsContent } from "@/lib/cms-store";
 import { createKashierSession, getKashierConfiguration } from "@/lib/kashier";
 import { getSiteOrigin } from "@/lib/site-url";
 import { resolveShippingLocation } from "@/lib/shipping-store";
+import { isCustomerEligibleForSale } from "@/lib/campaign-store";
+import { getDiscountedPrice, saleCampaign } from "@/data/campaign";
 import {
   createOrder,
   updateOrder,
@@ -59,6 +61,7 @@ export async function POST(request: Request) {
     }
 
     const content = await getCmsContent();
+    const saleEligible = await isCustomerEligibleForSale(customer.phone);
     const items: StoredOrder["items"] = [];
     let subtotal = 0;
     let hasPendingPrice = false;
@@ -81,15 +84,27 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-      if (size.price === null) hasPendingPrice = true;
-      else subtotal += size.price * quantity;
+      const unitPrice =
+        size.price === null
+          ? null
+          : saleEligible
+            ? getDiscountedPrice(size.price)
+            : size.price;
+      if (unitPrice === null) hasPendingPrice = true;
+      else subtotal += unitPrice * quantity;
       items.push({
         slug: product.slug,
         name: product.name,
         sizeId: size.id,
         sizeLabel: size.label,
         quantity,
-        unitPrice: size.price,
+        unitPrice,
+        ...(saleEligible
+          ? {
+              discountPercent: saleCampaign.discountPercent,
+              ...(size.price !== null ? { listUnitPrice: size.price } : {}),
+            }
+          : {}),
       });
     }
 

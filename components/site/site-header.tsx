@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/components/commerce/cart-provider";
+import { CampaignBanner } from "@/components/commerce/campaign-banner";
 import type { SiteSettings } from "@/lib/cms-store";
 
 export function SiteHeader({
@@ -18,6 +19,7 @@ export function SiteHeader({
 
   return (
     <header className="site-header">
+      <CampaignBanner />
       <div className="site-header__inner fit-container">
         <div className="site-header__brand-group">
           <Link className="site-logo" href="/" onClick={() => setOpen(false)} aria-label="Fitkline - الرئيسية">

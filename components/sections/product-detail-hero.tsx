@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ProductPurchase } from "@/components/commerce/product-purchase";
+import { CampaignBadge } from "@/components/commerce/campaign-badge";
 import type { Product, ProductSize } from "@/data/products";
 
 export function ProductDetailHero({
@@ -15,6 +16,7 @@ export function ProductDetailHero({
     <section className="product-detail-hero">
       <div className="fit-container product-detail-hero__grid">
         <div className={`product-detail-hero__visual${size.id === "4kg" ? " product-detail-hero__visual--packshot" : ""}`}>
+          <CampaignBadge />
           <Image
             src={selectedImage}
             alt={`${product.imageAlt} — ${size.label}`}
