@@ -3,6 +3,7 @@ import { Alexandria, Lalezar } from "next/font/google";
 import { CartProvider } from "@/components/commerce/cart-provider";
 import { SiteFooter } from "@/components/site/site-footer";
 import { SiteHeader } from "@/components/site/site-header";
+import { WhatsAppButton } from "@/components/site/whatsapp-button";
 import { SiteAnalytics } from "@/components/analytics/site-analytics";
 import { MetaPixel } from "@/components/analytics/meta-pixel";
 import { getCmsContent } from "@/lib/cms-store";
@@ -65,6 +66,9 @@ export default async function RootLayout({
           <SiteHeader settings={content.settings} links={content.navigation} />
           {children}
           <SiteFooter settings={content.settings} links={content.navigation} />
+          <WhatsAppButton
+            phoneNumber={content.settings.whatsapp || "+201150301033"}
+          />
         </CartProvider>
       </body>
     </html>

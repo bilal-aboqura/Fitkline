@@ -37,7 +37,7 @@ export function CheckoutForm({
   );
   const city = governorate?.cities.find((item) => item.id === Number(cityId));
   const shippingAmount = city
-    ? city.shippingPrice ?? governorate?.shippingPrice ?? null
+    ? (city.shippingPrice ?? governorate?.shippingPrice ?? null)
     : null;
   const hasPendingPrice = items.some(
     (item) => typeof item.unitPrice !== "number",
@@ -74,8 +74,7 @@ export function CheckoutForm({
   const kashierAvailable =
     paymentOptions.kashier && total !== null && total > 0;
 
-  const activeCities =
-    governorate?.cities.filter((item) => item.active) ?? [];
+  const activeCities = governorate?.cities.filter((item) => item.active) ?? [];
   const effectivePaymentMethod =
     paymentMethod === "kashier" && !kashierAvailable && paymentOptions.cod
       ? "cod"
@@ -89,8 +88,7 @@ export function CheckoutForm({
         </span>
         <h2>طلبك اتسجل بنجاح.</h2>
         <p>
-          فريق Fitkline هيراجع الطلب ويتواصل معاك لتأكيد التنفيذ وموعد
-          التوصيل.
+          فريق Fitkline هيراجع الطلب ويتواصل معاك لتأكيد التنفيذ وموعد التوصيل.
         </p>
         <Link className="fit-button-primary" href="/products">
           ارجع للمنتجات
@@ -145,21 +143,25 @@ export function CheckoutForm({
       }
       const orderReference = result.reference ?? "FTK-REQUEST";
       if (total !== null) {
-        trackMetaEvent("Purchase", {
-          value: total,
-          currency: "EGP",
-          content_type: "product",
-          content_ids: items.map((item) => `${item.slug}-${item.sizeId}`),
-          contents: items.map((item) => ({
-            id: `${item.slug}-${item.sizeId}`,
-            quantity: item.quantity,
-            ...(typeof item.unitPrice === "number"
-              ? { item_price: item.unitPrice }
-              : {}),
-          })),
-          num_items: items.reduce((sum, item) => sum + item.quantity, 0),
-          order_id: orderReference,
-        }, { eventId: `purchase-${orderReference}` });
+        trackMetaEvent(
+          "Purchase",
+          {
+            value: total,
+            currency: "EGP",
+            content_type: "product",
+            content_ids: items.map((item) => `${item.slug}-${item.sizeId}`),
+            contents: items.map((item) => ({
+              id: `${item.slug}-${item.sizeId}`,
+              quantity: item.quantity,
+              ...(typeof item.unitPrice === "number"
+                ? { item_price: item.unitPrice }
+                : {}),
+            })),
+            num_items: items.reduce((sum, item) => sum + item.quantity, 0),
+            order_id: orderReference,
+          },
+          { eventId: `purchase-${orderReference}` },
+        );
       }
       setReference(orderReference);
       setSubmitted(true);
@@ -199,12 +201,7 @@ export function CheckoutForm({
           </label>
           <label>
             <span>البريد الإلكتروني</span>
-            <input
-              required
-              name="email"
-              type="email"
-              autoComplete="email"
-            />
+            <input required name="email" type="email" autoComplete="email" />
           </label>
           <label>
             <span>المحافظة</span>
@@ -237,7 +234,9 @@ export function CheckoutForm({
               onChange={(event) => setCityId(event.target.value)}
             >
               <option value="">
-                {governorateId ? "اختار المدينة أو المنطقة" : "اختار المحافظة أولًا"}
+                {governorateId
+                  ? "اختار المدينة أو المنطقة"
+                  : "اختار المحافظة أولًا"}
               </option>
               {activeCities.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -303,7 +302,9 @@ export function CheckoutForm({
         <fieldset className="payment-methods">
           <legend>طريقة الدفع</legend>
           {paymentOptions.cod ? (
-            <label className={effectivePaymentMethod === "cod" ? "is-selected" : ""}>
+            <label
+              className={effectivePaymentMethod === "cod" ? "is-selected" : ""}
+            >
               <input
                 type="radio"
                 name="paymentMethod"
@@ -322,7 +323,9 @@ export function CheckoutForm({
           ) : null}
           {paymentOptions.kashier ? (
             <label
-              className={effectivePaymentMethod === "kashier" ? "is-selected" : ""}
+              className={
+                effectivePaymentMethod === "kashier" ? "is-selected" : ""
+              }
             >
               <input
                 type="radio"
@@ -333,7 +336,7 @@ export function CheckoutForm({
                 onChange={() => setPaymentMethod("kashier")}
               />
               <span>
-                <b>الدفع الإلكتروني مع كاشير</b>
+                <b>الدفع الإلكتروني</b>
                 <small>
                   {kashierAvailable
                     ? "هتنتقل لصفحة كاشير الآمنة لإتمام الدفع."

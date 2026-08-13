@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import {
   formatProductPrice,
   getActiveProductVariants,
@@ -31,19 +32,19 @@ export function ProductDirectory({
         </div>
 
         <div className="product-directory__grid">
-          {variants.map(({ product, size, href, image }, index) => (
-            <article className="product-card product-card--editorial" key={`${product.slug}-${size.id}`}>
+          {variants.map(({ product, size, href, image, mobileOrder }) => (
+            <article
+              className="product-card product-card--editorial"
+              key={`${product.slug}-${size.id}`}
+              style={{ "--mobile-order": mobileOrder } as CSSProperties}
+            >
               <div className="product-card__visual">
-                <div className="product-card__visual-meta" dir="ltr">
-                  <span>{String(index + 1).padStart(2, "0")} / {String(variants.length).padStart(2, "0")}</span>
-                  <span>{size.id.toUpperCase()} · FITKLINE</span>
-                </div>
                 <Image
                   src={image}
                   alt={`${product.imageAlt} — ${size.label}`}
                   width={560}
                   height={720}
-                  sizes="(max-width: 760px) 90vw, (max-width: 1100px) 44vw, 31vw"
+                  sizes="(max-width: 720px) 45vw, (max-width: 1100px) 44vw, 31vw"
                 />
               </div>
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { formatProductPrice, getActiveProductVariants } from "@/data/products";
 import { getCmsProducts } from "@/lib/cms-store";
 
@@ -52,22 +53,19 @@ export default async function ProductsPage() {
             </p>
           </div>
           <div className="catalog-grid catalog-grid--redesign">
-            {variants.map(({ product, size, href, image }, index) => (
+            {variants.map(({ product, size, href, image, mobileOrder }) => (
               <article
                 className="catalog-card catalog-card--redesign"
                 key={`${product.slug}-${size.id}`}
+                style={{ "--mobile-order": mobileOrder } as CSSProperties}
               >
                 <div className="catalog-card__visual">
-                  <div className="catalog-card__meta" dir="ltr">
-                    <span>{String(index + 1).padStart(2, "0")} / {String(variants.length).padStart(2, "0")}</span>
-                    <span>{size.id.toUpperCase()} · FITKLINE</span>
-                  </div>
                   <Image
                     src={image}
                     alt={`${product.imageAlt} — ${size.label}`}
                     width={560}
                     height={720}
-                    sizes="(max-width: 760px) 90vw, 30vw"
+                    sizes="(max-width: 720px) 45vw, (max-width: 900px) 90vw, 30vw"
                   />
                 </div>
                 <div className="catalog-card__body">

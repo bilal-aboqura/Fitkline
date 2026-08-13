@@ -34,6 +34,7 @@ export type ProductVariant = {
   readonly size: ProductSize;
   readonly href: string;
   readonly image: string;
+  readonly mobileOrder: number;
 };
 
 export function getProductVariantHref(
@@ -47,19 +48,24 @@ export function getActiveProductVariants(
   catalog: readonly Product[],
 ): ProductVariant[] {
   const sizeOrder: readonly ProductSizeId[] = ["4kg", "20kg"];
+  const orderedCatalog = [
+    ...catalog.filter((product) => product.slug === "shinyfit"),
+    ...catalog.filter((product) => product.slug !== "shinyfit"),
+  ];
 
-  return sizeOrder.flatMap((sizeId) =>
-    catalog.flatMap((product) => {
+  return sizeOrder.flatMap((sizeId, sizeIndex) =>
+    orderedCatalog.flatMap((product, productIndex) => {
       const size = product.sizes.find(
         (candidate) => candidate.id === sizeId && candidate.active,
       );
 
       return size
         ? [{
-        product,
-        size,
-        href: getProductVariantHref(product.slug, size.id),
-        image: product.sizeImages[size.id] ?? product.image,
+            product,
+            size,
+            href: getProductVariantHref(product.slug, size.id),
+            image: product.sizeImages[size.id] ?? product.image,
+            mobileOrder: productIndex * sizeOrder.length + sizeIndex,
           }]
         : [];
     }),
