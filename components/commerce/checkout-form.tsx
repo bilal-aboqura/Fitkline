@@ -57,16 +57,17 @@ export function CheckoutForm({
         (total, item) => total + (item.unitPrice ?? 0) * item.quantity,
         0,
       );
-  const discount = listSubtotal === null || !saleAvailable
-    ? 0
-    : items.reduce(
-        (total, item) =>
-          total +
-          (typeof item.unitPrice === "number"
-            ? getDiscountAmount(item.unitPrice) * item.quantity
-            : 0),
-        0,
-      );
+  const discount =
+    listSubtotal === null || !saleAvailable
+      ? 0
+      : items.reduce(
+          (total, item) =>
+            total +
+            (typeof item.unitPrice === "number"
+              ? getDiscountAmount(item.unitPrice) * item.quantity
+              : 0),
+          0,
+        );
   const subtotal = listSubtotal === null ? null : listSubtotal - discount;
   const total =
     subtotal !== null && shippingAmount !== null
@@ -83,7 +84,11 @@ export function CheckoutForm({
         id: `${item.slug}-${item.sizeId}`,
         quantity: item.quantity,
         ...(typeof item.unitPrice === "number"
-          ? { item_price: saleAvailable ? getDiscountedPrice(item.unitPrice) : item.unitPrice }
+          ? {
+              item_price: saleAvailable
+                ? getDiscountedPrice(item.unitPrice)
+                : item.unitPrice,
+            }
           : {}),
       })),
       currency: "EGP",
@@ -174,7 +179,11 @@ export function CheckoutForm({
               id: `${item.slug}-${item.sizeId}`,
               quantity: item.quantity,
               ...(typeof item.unitPrice === "number"
-                ? { item_price: saleAvailable ? getDiscountedPrice(item.unitPrice) : item.unitPrice }
+                ? {
+                    item_price: saleAvailable
+                      ? getDiscountedPrice(item.unitPrice)
+                      : item.unitPrice,
+                  }
                 : {}),
             })),
             num_items: items.reduce((sum, item) => sum + item.quantity, 0),
@@ -305,12 +314,18 @@ export function CheckoutForm({
         <dl className="checkout-totals">
           <div>
             <dt>إجمالي المنتجات قبل الخصم</dt>
-            <dd>{listSubtotal === null ? "قيد التأكيد" : money(listSubtotal)}</dd>
+            <dd>
+              {listSubtotal === null ? "قيد التأكيد" : money(listSubtotal)}
+            </dd>
           </div>
           {saleAvailable ? (
             <div className="checkout-totals__discount">
-              <dt>خصم الحملة ({saleCampaign.discountPercent}%)</dt>
-              <dd>{listSubtotal === null ? "يُطبّق بعد التأكيد" : `− ${money(discount)}`}</dd>
+              <dt>خصم ({saleCampaign.discountPercent}%)</dt>
+              <dd>
+                {listSubtotal === null
+                  ? "يُطبّق بعد التأكيد"
+                  : `− ${money(discount)}`}
+              </dd>
             </div>
           ) : null}
           <div>
