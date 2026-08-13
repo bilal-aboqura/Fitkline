@@ -30,6 +30,7 @@ export async function POST(request: Request) {
     const customer = {
       name: text(body.name),
       phone: text(body.phone),
+      alternatePhone: text(body.alternatePhone),
       email: text(body.email),
       address: text(body.address),
     };

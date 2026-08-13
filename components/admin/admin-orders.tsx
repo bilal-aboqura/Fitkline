@@ -30,7 +30,8 @@ export function AdminOrders({
         !normalized ||
         order.reference.toLowerCase().includes(normalized) ||
         order.customer.name.toLowerCase().includes(normalized) ||
-        order.customer.phone.includes(normalized);
+        order.customer.phone.includes(normalized) ||
+        order.customer.alternatePhone?.includes(normalized);
       return matchesFilter && matchesQuery;
     });
   }, [orders, query, filter]);
@@ -133,9 +134,15 @@ export function AdminOrders({
                       <dd>{order.customer.name}</dd>
                     </div>
                     <div>
-                      <dt>الهاتف</dt>
+                      <dt>الهاتف الأساسي</dt>
                       <dd dir="ltr">{order.customer.phone}</dd>
                     </div>
+                    {order.customer.alternatePhone ? (
+                      <div>
+                        <dt>الهاتف البديل</dt>
+                        <dd dir="ltr">{order.customer.alternatePhone}</dd>
+                      </div>
+                    ) : null}
                     <div>
                       <dt>البريد</dt>
                       <dd dir="ltr">{order.customer.email}</dd>

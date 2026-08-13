@@ -146,6 +146,7 @@ export function CheckoutForm({
         body: JSON.stringify({
           name: formData.get("name"),
           phone: formData.get("phone"),
+          alternatePhone: formData.get("alternatePhone"),
           email: formData.get("email"),
           governorateId,
           cityId: Number(cityId),
@@ -219,13 +220,23 @@ export function CheckoutForm({
             <input required name="name" autoComplete="name" />
           </label>
           <label>
-            <span>رقم الموبايل</span>
+            <span>رقم الموبايل الأساسي</span>
             <input
               required
               name="phone"
               type="tel"
               inputMode="tel"
               autoComplete="tel"
+            />
+          </label>
+          <label>
+            <span>رقم موبايل بديل</span>
+            <input
+              required
+              name="alternatePhone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="off"
             />
           </label>
           <label>

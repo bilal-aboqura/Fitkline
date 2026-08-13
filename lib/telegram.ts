@@ -75,7 +75,10 @@ export function formatNewOrderNotification(order: StoredOrder) {
     `التاريخ: ${formatOrderTime(order.createdAt)}`,
     "",
     `العميل: ${singleLine(order.customer.name)}`,
-    `الهاتف: ${singleLine(order.customer.phone)}`,
+    `الهاتف الأساسي: ${singleLine(order.customer.phone)}`,
+    ...(order.customer.alternatePhone
+      ? [`الهاتف البديل: ${singleLine(order.customer.alternatePhone)}`]
+      : []),
     `البريد: ${singleLine(order.customer.email)}`,
     `العنوان: ${singleLine(order.customer.governorate)}، ${singleLine(order.customer.city)}، ${singleLine(order.customer.address)}`,
     "",

@@ -23,6 +23,7 @@ export type StoredOrder = {
   customer: {
     name: string;
     phone: string;
+    alternatePhone?: string;
     email: string;
     governorate: string;
     governorateId: string;
