@@ -24,18 +24,28 @@ export function CartView() {
         (total, item) => total + (item.unitPrice ?? 0) * item.quantity,
         0,
       );
-  const discount =
+  const cashDiscount =
     listSubtotal === null || !saleAvailable
       ? 0
       : items.reduce(
           (total, item) =>
             total +
             (typeof item.unitPrice === "number"
-              ? getDiscountAmount(item.unitPrice) * item.quantity
+              ? getDiscountAmount(item.unitPrice, "cod") * item.quantity
               : 0),
           0,
         );
-  const subtotal = listSubtotal === null ? null : listSubtotal - discount;
+  const electronicDiscount =
+    listSubtotal === null || !saleAvailable
+      ? 0
+      : items.reduce(
+          (total, item) =>
+            total +
+            (typeof item.unitPrice === "number"
+              ? getDiscountAmount(item.unitPrice, "kashier") * item.quantity
+              : 0),
+          0,
+        );
 
   if (!items.length) {
     return (
@@ -107,29 +117,44 @@ export function CartView() {
             <dt>عدد المنتجات</dt>
             <dd>{items.reduce((total, item) => total + item.quantity, 0)}</dd>
           </div>
-          {saleAvailable ? (
-            <div className="cart-summary__discount">
-              <dt>خصم ({saleCampaign.discountPercent}%)</dt>
-              <dd>
-                {listSubtotal === null
-                  ? "يُطبّق بعد التأكيد"
-                  : `− ${discount.toLocaleString("ar-EG")} ج.م`}
-              </dd>
-            </div>
-          ) : null}
           <div>
-            <dt>المجموع الفرعي</dt>
+            <dt>المجموع قبل خصم الدفع</dt>
             <dd>
-              {subtotal === null
+              {listSubtotal === null
                 ? "قيد التأكيد"
-                : `${subtotal.toLocaleString("ar-EG")} ج.م`}
+                : `${listSubtotal.toLocaleString("ar-EG")} ج.م`}
             </dd>
           </div>
+          {saleAvailable ? (
+            <>
+              <div className="cart-summary__discount">
+                <dt>عند الاستلام · خصم {saleCampaign.discountPercent}%</dt>
+                <dd>
+                  {listSubtotal === null
+                    ? "يُطبّق بعد التأكيد"
+                    : `${(listSubtotal - cashDiscount).toLocaleString("ar-EG")} ج.م`}
+                </dd>
+              </div>
+              <div className="cart-summary__discount cart-summary__discount--best">
+                <dt>دفع إلكتروني · خصم {saleCampaign.electronicDiscountPercent}%</dt>
+                <dd>
+                  {listSubtotal === null
+                    ? "يُطبّق بعد التأكيد"
+                    : `${(listSubtotal - electronicDiscount).toLocaleString("ar-EG")} ج.م`}
+                </dd>
+              </div>
+            </>
+          ) : null}
           <div>
             <dt>الشحن</dt>
             <dd>يُحسب حسب المحافظة والمدينة</dd>
           </div>
         </dl>
+        {saleAvailable ? (
+          <p className="payment-discount-notice" role="note">
+            ادفع إلكترونيًا ووفر {saleCampaign.electronicDiscountPercent}%، أو اختار الدفع عند الاستلام وخد خصم {saleCampaign.discountPercent}%.
+          </p>
+        ) : null}
         <Link className="fit-button-primary" href="/checkout">
           كمل طلبك
         </Link>

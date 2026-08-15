@@ -6,7 +6,10 @@ import { getSiteOrigin } from "@/lib/site-url";
 import { resolveShippingLocation } from "@/lib/shipping-store";
 import { isCustomerEligibleForSale } from "@/lib/campaign-store";
 import { notifyTelegramAboutNewOrder } from "@/lib/telegram";
-import { getDiscountedPrice, saleCampaign } from "@/data/campaign";
+import {
+  getDiscountedPrice,
+  getPaymentDiscountPercent,
+} from "@/data/campaign";
 import { phoneComparisonKey } from "@/lib/phone";
 import {
   createOrder,
@@ -73,6 +76,21 @@ export async function POST(request: Request) {
     }
 
     const content = await getCmsContent();
+    const requestedMethod = text(body.paymentMethod);
+    const paymentMethod: PaymentMethod =
+      requestedMethod === "kashier" ? "kashier" : "cod";
+    if (paymentMethod === "cod" && !content.settings.cashOnDeliveryEnabled) {
+      return NextResponse.json(
+        { error: "الدفع عند الاستلام غير متاح حاليًا." },
+        { status: 400 },
+      );
+    }
+    if (paymentMethod === "kashier" && !content.settings.kashierEnabled) {
+      return NextResponse.json(
+        { error: "الدفع الإلكتروني غير متاح حاليًا." },
+        { status: 400 },
+      );
+    }
     const saleEligible = await isCustomerEligibleForSale(customer.phone);
     const items: StoredOrder["items"] = [];
     let subtotal = 0;
@@ -100,7 +118,7 @@ export async function POST(request: Request) {
         size.price === null
           ? null
           : saleEligible
-            ? getDiscountedPrice(size.price)
+            ? getDiscountedPrice(size.price, paymentMethod)
             : size.price;
       if (unitPrice === null) hasPendingPrice = true;
       else subtotal += unitPrice * quantity;
@@ -113,17 +131,11 @@ export async function POST(request: Request) {
         unitPrice,
         ...(saleEligible
           ? {
-              discountPercent: saleCampaign.discountPercent,
+              discountPercent: getPaymentDiscountPercent(paymentMethod),
               ...(size.price !== null ? { listUnitPrice: size.price } : {}),
             }
           : {}),
       });
-    }
-
-    const requestedMethod = text(body.paymentMethod);
-    const paymentMethod: PaymentMethod = requestedMethod === "kashier" ? "kashier" : "cod";
-    if (paymentMethod === "cod" && !content.settings.cashOnDeliveryEnabled) {
-      return NextResponse.json({ error: "الدفع عند الاستلام غير متاح حاليًا." }, { status: 400 });
     }
 
     const kashier = getKashierConfiguration();

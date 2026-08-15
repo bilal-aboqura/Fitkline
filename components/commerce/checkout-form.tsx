@@ -8,6 +8,7 @@ import { useCampaign } from "@/components/commerce/campaign-provider";
 import {
   getDiscountAmount,
   getDiscountedPrice,
+  getPaymentDiscountPercent,
   isSaleAvailable,
   saleCampaign,
 } from "@/data/campaign";
@@ -59,17 +60,35 @@ export function CheckoutForm({
         (total, item) => total + (item.unitPrice ?? 0) * item.quantity,
         0,
       );
-  const discount =
+  const discountFor = (method: "cod" | "kashier") =>
     listSubtotal === null || !saleAvailable
       ? 0
       : items.reduce(
           (total, item) =>
             total +
             (typeof item.unitPrice === "number"
-              ? getDiscountAmount(item.unitPrice) * item.quantity
+              ? getDiscountAmount(item.unitPrice, method) * item.quantity
               : 0),
           0,
         );
+  const kashierDiscount = discountFor("kashier");
+  const kashierSubtotal =
+    listSubtotal === null ? null : listSubtotal - kashierDiscount;
+  const kashierTotal =
+    kashierSubtotal !== null && shippingAmount !== null
+      ? kashierSubtotal + shippingAmount
+      : null;
+  const kashierAvailable =
+    paymentOptions.kashier && kashierTotal !== null && kashierTotal > 0;
+  const activeCities = governorate?.cities.filter((item) => item.active) ?? [];
+  const effectivePaymentMethod =
+    paymentMethod === "kashier" && !kashierAvailable && paymentOptions.cod
+      ? "cod"
+      : paymentMethod;
+  const discountPercent = saleAvailable
+    ? getPaymentDiscountPercent(effectivePaymentMethod)
+    : 0;
+  const discount = discountFor(effectivePaymentMethod);
   const subtotal = listSubtotal === null ? null : listSubtotal - discount;
   const total =
     subtotal !== null && shippingAmount !== null
@@ -88,7 +107,7 @@ export function CheckoutForm({
         ...(typeof item.unitPrice === "number"
           ? {
               item_price: saleAvailable
-                ? getDiscountedPrice(item.unitPrice)
+                ? getDiscountedPrice(item.unitPrice, effectivePaymentMethod)
                 : item.unitPrice,
             }
           : {}),
@@ -97,15 +116,7 @@ export function CheckoutForm({
       num_items: items.reduce((sum, item) => sum + item.quantity, 0),
       ...(subtotal !== null ? { value: subtotal } : {}),
     });
-  }, [items, saleAvailable, subtotal]);
-  const kashierAvailable =
-    paymentOptions.kashier && total !== null && total > 0;
-
-  const activeCities = governorate?.cities.filter((item) => item.active) ?? [];
-  const effectivePaymentMethod =
-    paymentMethod === "kashier" && !kashierAvailable && paymentOptions.cod
-      ? "cod"
-      : paymentMethod;
+  }, [effectivePaymentMethod, items, saleAvailable, subtotal]);
 
   if (submitted) {
     return (
@@ -198,7 +209,7 @@ export function CheckoutForm({
               ...(typeof item.unitPrice === "number"
                 ? {
                     item_price: saleAvailable
-                      ? getDiscountedPrice(item.unitPrice)
+                      ? getDiscountedPrice(item.unitPrice, effectivePaymentMethod)
                       : item.unitPrice,
                   }
                 : {}),
@@ -342,7 +353,7 @@ export function CheckoutForm({
                 {typeof item.unitPrice === "number"
                   ? money(
                       (saleAvailable
-                        ? getDiscountedPrice(item.unitPrice)
+                        ? getDiscountedPrice(item.unitPrice, effectivePaymentMethod)
                         : item.unitPrice) * item.quantity,
                     )
                   : "السعر قيد التأكيد"}
@@ -351,7 +362,16 @@ export function CheckoutForm({
           ))}
         </ul>
 
-        <dl className="checkout-totals">
+        {saleAvailable ? (
+          <div className="payment-discount-notice payment-discount-notice--checkout" role="note">
+            <b>وفّر أكتر مع طريقة الدفع المناسبة</b>
+            <span>
+              خصم {saleCampaign.discountPercent}% عند الاستلام، وخصم {saleCampaign.electronicDiscountPercent}% عند الدفع الإلكتروني. الإجمالي بيتحدّث تلقائيًا حسب اختيارك.
+            </span>
+          </div>
+        ) : null}
+
+        <dl className="checkout-totals" aria-live="polite">
           <div>
             <dt>إجمالي المنتجات قبل الخصم</dt>
             <dd>
@@ -360,7 +380,9 @@ export function CheckoutForm({
           </div>
           {saleAvailable ? (
             <div className="checkout-totals__discount">
-              <dt>خصم ({saleCampaign.discountPercent}%)</dt>
+              <dt>
+                خصم {effectivePaymentMethod === "kashier" ? "الدفع الإلكتروني" : "الدفع عند الاستلام"} ({discountPercent}%)
+              </dt>
               <dd>
                 {listSubtotal === null
                   ? "يُطبّق بعد التأكيد"
@@ -402,10 +424,12 @@ export function CheckoutForm({
                 onChange={() => setPaymentMethod("cod")}
               />
               <span>
-                <b>الدفع عند الاستلام</b>
+                <b>
+                  الدفع عند الاستلام
+                  {saleAvailable ? <em>خصم {saleCampaign.discountPercent}%</em> : null}
+                </b>
                 <small>
-                  لو أي سعر لسه غير محدد، الفريق هيأكد الإجمالي معاك قبل
-                  التنفيذ.
+                  ادفع وقت وصول الطلب. لو أي سعر لسه غير محدد، الفريق هيأكد الإجمالي معاك قبل التنفيذ.
                 </small>
               </span>
             </label>
@@ -425,10 +449,13 @@ export function CheckoutForm({
                 onChange={() => setPaymentMethod("kashier")}
               />
               <span>
-                <b>الدفع الإلكتروني</b>
+                <b>
+                  الدفع الإلكتروني
+                  {saleAvailable ? <em>خصم {saleCampaign.electronicDiscountPercent}% · أفضل توفير</em> : null}
+                </b>
                 <small>
                   {kashierAvailable
-                    ? "هتنتقل لصفحة كاشير الآمنة لإتمام الدفع."
+                    ? "هتنتقل لصفحة كاشير الآمنة لإتمام الدفع بالسعر بعد الخصم."
                     : "يتاح بعد اختيار العنوان وتحديد أسعار المنتجات والشحن."}
                 </small>
               </span>

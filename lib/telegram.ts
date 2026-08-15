@@ -67,6 +67,19 @@ export function formatNewOrderNotification(order: StoredOrder) {
       item.unitPrice === null ? null : item.unitPrice * item.quantity;
     return `${index + 1}. ${singleLine(item.name)} — ${singleLine(item.sizeLabel)} × ${item.quantity} — ${formatMoney(lineTotal, order.currency)}`;
   });
+  const discountPercent = order.items.find(
+    (item) => item.discountPercent,
+  )?.discountPercent;
+  const listSubtotal = order.items.reduce<number | null>((total, item) => {
+    const unitPrice = item.listUnitPrice ?? item.unitPrice;
+    return total === null || unitPrice === null
+      ? null
+      : total + unitPrice * item.quantity;
+  }, 0);
+  const discountAmount =
+    listSubtotal === null || order.subtotal === null
+      ? null
+      : Math.max(0, listSubtotal - order.subtotal);
 
   const message = [
     "🛒 طلب جديد — Fitkline",
@@ -85,6 +98,11 @@ export function formatNewOrderNotification(order: StoredOrder) {
     "المنتجات:",
     ...itemLines,
     "",
+    ...(discountPercent
+      ? [
+          `خصم طريقة الدفع: ${discountPercent}%${discountAmount === null ? "" : ` — ${formatMoney(discountAmount, order.currency)}`}`,
+        ]
+      : []),
     `المجموع الفرعي: ${formatMoney(order.subtotal, order.currency)}`,
     `الشحن: ${formatMoney(order.shippingAmount, order.currency)}`,
     `الإجمالي: ${formatMoney(order.total, order.currency)}`,

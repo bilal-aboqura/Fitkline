@@ -80,7 +80,10 @@ export function ProductPurchase({ product, size }: ProductPurchaseProps) {
 
       {saleAvailable ? (
         <div className="purchase-panel__campaign" role="note">
-          <b>خصم {saleCampaign.discountPercent}% محجوز لأول {saleCampaign.customerLimit} عميل</b>
+          <b>
+            خصم {saleCampaign.discountPercent}% عند الاستلام أو {saleCampaign.electronicDiscountPercent}% للدفع الإلكتروني
+          </b>
+          <span>العرض متاح لأول {saleCampaign.customerLimit} عميل، والخصم بيتحسب تلقائيًا في صفحة الدفع.</span>
         </div>
       ) : null}
 

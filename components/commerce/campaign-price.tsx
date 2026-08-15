@@ -25,7 +25,9 @@ export function CampaignPrice({
       <span className="campaign-price campaign-price--pending">
         <strong>{pendingLabel}</strong>
         {available ? (
-          <small>خصم {saleCampaign.discountPercent}% يُطبّق بعد تأكيد السعر</small>
+          <small>
+            خصم {saleCampaign.discountPercent}% عند الاستلام أو {saleCampaign.electronicDiscountPercent}% للدفع الإلكتروني
+          </small>
         ) : null}
       </span>
     );
@@ -37,9 +39,18 @@ export function CampaignPrice({
     <span className={`campaign-price${compact ? " campaign-price--compact" : ""}`}>
       <span className="campaign-price__topline">
         <del>{formatProductPrice(price)}</del>
-        <b>خصم {saleCampaign.discountPercent}%</b>
+        <b>خصم حسب طريقة الدفع</b>
       </span>
-      <strong>{formatProductPrice(getDiscountedPrice(price))}</strong>
+      <span className="campaign-price__payment-options">
+        <strong>
+          <small>عند الاستلام · خصم {saleCampaign.discountPercent}%</small>
+          {formatProductPrice(getDiscountedPrice(price, "cod"))}
+        </strong>
+        <strong>
+          <small>دفع إلكتروني · خصم {saleCampaign.electronicDiscountPercent}%</small>
+          {formatProductPrice(getDiscountedPrice(price, "kashier"))}
+        </strong>
+      </span>
     </span>
   );
 }

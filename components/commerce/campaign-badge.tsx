@@ -9,7 +9,7 @@ export function CampaignBadge() {
 
   return (
     <span className="campaign-sale-badge">
-      خصم {saleCampaign.discountPercent}%
+      خصم حتى {saleCampaign.electronicDiscountPercent}%
     </span>
   );
 }

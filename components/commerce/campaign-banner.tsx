@@ -28,7 +28,7 @@ export function CampaignBanner() {
           </span>
         </p>
         {available ? (
-          <Link href="/products">تسوّق العرض <span aria-hidden="true">←</span></Link>
+          <Link href="/products">تسوّق بالخصم <span aria-hidden="true">←</span></Link>
         ) : null}
       </div>
     </aside>

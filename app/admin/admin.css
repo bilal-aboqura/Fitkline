@@ -3,6 +3,160 @@ body:has(.admin-root) {
   color: #18201a;
 }
 
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .admin-orders {
+    overflow: visible !important;
+  }
+
+  .admin-order-print-sheet,
+  .admin-order-print-sheet * {
+    visibility: visible !important;
+  }
+
+  .admin-order-print-sheet {
+    position: absolute;
+    inset: 0;
+    display: block !important;
+    width: 100%;
+    direction: rtl;
+    background: #fff;
+    color: #111;
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+  }
+
+  .admin-order-print-sheet__header {
+    display: flex;
+    padding-bottom: 16px;
+    align-items: end;
+    justify-content: space-between;
+    gap: 24px;
+    border-bottom: 3px solid #111;
+  }
+
+  .admin-order-print-sheet__header p,
+  .admin-order-print-sheet__header h1,
+  .admin-order-print-sheet__header time {
+    margin: 0;
+  }
+
+  .admin-order-print-sheet__header p {
+    font-size: 8pt;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+  }
+
+  .admin-order-print-sheet__header h1 {
+    margin-top: 4px;
+    font-size: 22pt;
+  }
+
+  .admin-order-print-sheet__header > div:last-child {
+    display: grid;
+    gap: 4px;
+    text-align: left;
+  }
+
+  .admin-order-print-sheet__meta {
+    display: grid;
+    margin-top: 18px;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 24px;
+  }
+
+  .admin-order-print-sheet h2 {
+    margin: 0 0 9px;
+    font-size: 12pt;
+  }
+
+  .admin-order-print-sheet dl {
+    margin: 0;
+  }
+
+  .admin-order-print-sheet__meta dl > div,
+  .admin-order-print-sheet__totals > div {
+    display: grid;
+    min-height: 24px;
+    padding-block: 4px;
+    grid-template-columns: 110px 1fr;
+    gap: 12px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .admin-order-print-sheet dt {
+    color: #555;
+  }
+
+  .admin-order-print-sheet dd {
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .admin-order-print-sheet__items {
+    margin-top: 22px;
+  }
+
+  .admin-order-print-sheet table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+  }
+
+  .admin-order-print-sheet th,
+  .admin-order-print-sheet td {
+    padding: 7px 6px;
+    border: 1px solid #bbb;
+    text-align: right;
+  }
+
+  .admin-order-print-sheet th {
+    background: #efefef !important;
+    font-weight: 800;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .admin-order-print-sheet__footer {
+    display: grid;
+    margin-top: 22px;
+    grid-template-columns: 1fr 280px;
+    gap: 32px;
+    break-inside: avoid;
+  }
+
+  .admin-order-print-sheet__notes p {
+    min-height: 78px;
+    margin: 0;
+    padding: 10px;
+    border: 1px solid #bbb;
+    white-space: pre-wrap;
+  }
+
+  .admin-order-print-sheet__totals > div {
+    grid-template-columns: 1fr auto;
+  }
+
+  .admin-order-print-sheet__totals > div:last-child {
+    padding-top: 8px;
+    border-top: 2px solid #111;
+    font-size: 12pt;
+  }
+}
+
 body:has(.admin-root) > .site-header,
 body:has(.admin-root) > .site-footer,
 body:has(.admin-root) .site-header,
@@ -111,7 +265,7 @@ body:has(.admin-root) .site-footer {
 .admin-login__form label,
 .admin-form-grid label,
 .admin-size-grid label,
-.admin-order-detail > label {
+.admin-order-actions label {
   display: grid;
   gap: 8px;
 }
@@ -119,7 +273,7 @@ body:has(.admin-root) .site-footer {
 .admin-login__form label > span,
 .admin-form-grid label > span,
 .admin-size-grid label > span,
-.admin-order-detail > label > span {
+.admin-order-actions label > span {
   font-size: 0.82rem;
   font-weight: 700;
 }
@@ -1079,6 +1233,7 @@ body:has(.admin-root) .site-footer {
 .admin-form-grid textarea,
 .admin-size-grid input,
 .admin-order-detail select,
+.admin-order-detail textarea,
 .admin-table-tools input,
 .admin-table-tools select {
   width: 100%;
@@ -1096,10 +1251,16 @@ body:has(.admin-root) .site-footer {
   line-height: 1.7;
 }
 
+.admin-order-detail textarea {
+  resize: vertical;
+  line-height: 1.65;
+}
+
 .admin-form-grid input:focus-visible,
 .admin-form-grid textarea:focus-visible,
 .admin-size-grid input:focus-visible,
 .admin-order-detail select:focus-visible,
+.admin-order-detail textarea:focus-visible,
 .admin-table-tools input:focus-visible,
 .admin-table-tools select:focus-visible {
   border-color: #6f9824;
@@ -1275,7 +1436,7 @@ body:has(.admin-root) .site-footer {
 .admin-order-detail {
   display: grid;
   padding: 24px;
-  grid-template-columns: 1fr 1fr 220px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(260px, 0.72fr);
   align-items: start;
   gap: 32px;
   border-top: 1px solid #e3e7e3;
@@ -1318,13 +1479,39 @@ body:has(.admin-root) .site-footer {
 }
 
 .admin-order-detail li {
-  display: flex;
+  display: grid;
   min-height: 36px;
   align-items: center;
-  justify-content: space-between;
+  grid-template-columns: minmax(90px, 1fr) auto auto auto;
   gap: 12px;
   border-bottom: 1px solid #e0e5e0;
   font-size: 0.8rem;
+}
+
+.admin-order-detail li small {
+  color: #4f741c;
+  font-weight: 800;
+}
+
+.admin-order-detail__totals {
+  margin-top: 18px !important;
+  padding-top: 14px;
+  border-top: 1px solid #d8ded8;
+}
+
+.admin-order-actions {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-order-actions .admin-primary-action,
+.admin-order-actions .admin-secondary-action {
+  width: 100%;
+  justify-content: center;
+}
+
+.admin-order-print-sheet {
+  display: none;
 }
 
 .admin-settings-grid {
@@ -1982,7 +2169,7 @@ body:has(.admin-root) .site-footer {
     grid-template-columns: 1fr 1fr;
   }
 
-  .admin-order-detail > label {
+  .admin-order-actions {
     grid-column: 1 / -1;
   }
 
@@ -2287,7 +2474,7 @@ body:has(.admin-root) .site-footer {
     grid-template-columns: 1fr;
   }
 
-  .admin-order-detail > label {
+  .admin-order-actions {
     grid-column: auto;
   }
 

@@ -139,13 +139,31 @@
   font-weight: 900;
 }
 
-.campaign-price > strong {
+.campaign-price > strong,
+.campaign-price__payment-options strong {
   color: var(--fit-neon);
   font-size: 1.35rem;
   line-height: 1.15;
 }
 
-.campaign-price--compact > strong {
+.campaign-price__payment-options {
+  display: grid;
+  gap: 7px;
+}
+
+.campaign-price__payment-options strong {
+  display: grid;
+  gap: 3px;
+}
+
+.campaign-price__payment-options small {
+  color: #b9c3bb;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.campaign-price--compact > strong,
+.campaign-price--compact .campaign-price__payment-options strong {
   font-size: 1rem;
 }
 
@@ -194,6 +212,32 @@
 .checkout-totals__discount dd {
   color: var(--fit-neon);
   font-weight: 900;
+}
+
+.cart-summary__discount--best {
+  padding-block: 10px;
+  border-block: 1px solid rgba(183, 255, 24, 0.22);
+}
+
+.payment-discount-notice {
+  margin: 18px 0;
+  padding: 14px 16px;
+  border-inline-start: 3px solid var(--fit-neon);
+  background: rgba(183, 255, 24, 0.065);
+  color: #d4ddd6;
+  font-size: 0.84rem;
+  line-height: 1.75;
+}
+
+.payment-discount-notice--checkout {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 22px;
+}
+
+.payment-discount-notice b {
+  color: var(--fit-neon);
+  font-size: 0.92rem;
 }
 
 .order-review .campaign-price {
@@ -4836,8 +4880,23 @@ body {
 }
 
 .payment-methods b {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   color: var(--fit-white);
   font-size: 0.95rem;
+}
+
+.payment-methods b em {
+  padding: 3px 7px;
+  border: 1px solid rgba(183, 255, 24, 0.42);
+  border-radius: 4px;
+  background: rgba(183, 255, 24, 0.08);
+  color: var(--fit-neon);
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 900;
 }
 
 .payment-methods small {
