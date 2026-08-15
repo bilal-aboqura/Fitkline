@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { ProductDetailHero } from "@/components/sections/product-detail-hero";
 import type { Product, ProductSize } from "@/data/products";
 
@@ -47,8 +46,6 @@ export function ProductDetailPageContent({
           <ul className="detail-list">{product.safety.map((item) => <li key={item}>{item}</li>)}</ul>
         </div>
       </section>
-
-      <div className="mobile-purchase-bar"><Link className="fit-button-primary" href="#purchase-panel">اطلب عبوة {size.label}</Link></div>
     </main>
   );
 }

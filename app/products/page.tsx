@@ -50,8 +50,8 @@ export default async function ProductsPage() {
               </h2>
             </div>
             <p>
-              افتح صفحة العبوة المطلوبة مباشرة. أي سعر يتم تحديثه من لوحة الإدارة
-              يظهر هنا وفي صفحة العبوة.
+              افتح صفحة العبوة المطلوبة مباشرة. أي سعر يتم تحديثه من لوحة
+              الإدارة يظهر هنا وفي صفحة العبوة.
             </p>
           </div>
           <div className="catalog-grid catalog-grid--redesign">
@@ -68,18 +68,22 @@ export default async function ProductsPage() {
                     alt={`${product.imageAlt} — ${size.label}`}
                     width={560}
                     height={720}
-                    sizes="(max-width: 720px) 45vw, (max-width: 900px) 90vw, 30vw"
+                    sizes="(max-width: 720px) 90vw, (max-width: 900px) 90vw, 30vw"
                   />
                 </div>
                 <div className="catalog-card__body">
-                  <p className="catalog-card__category">{product.category}</p>
                   <div className="catalog-card__heading">
-                    <h2 dir="ltr">{product.name}</h2>
+                    <div>
+                      <h2 dir="ltr">{product.name}</h2>
+                      <p className="catalog-card__category">
+                        {product.category}
+                      </p>
+                    </div>
                     <span dir="ltr">{size.label}</span>
                   </div>
                   <p>{product.shortDescription}</p>
                   <ul>
-                    {product.benefits.map((benefit) => (
+                    {product.benefits.slice(0, 2).map((benefit) => (
                       <li key={benefit}>{benefit}</li>
                     ))}
                   </ul>
@@ -90,7 +94,7 @@ export default async function ProductsPage() {
                       pendingLabel={product.priceLabel}
                     />
                     <Link className="fit-button-primary" href={href}>
-                      شوف عبوة {size.label}
+                      إشتري الان <span aria-hidden="true">←</span>
                     </Link>
                   </div>
                 </div>

@@ -18,7 +18,10 @@ export function CampaignBanner() {
           {available ? "عرض محدود" : "اكتمل العرض"}
         </span>
         <p>
-          <strong>{saleCampaign.title}</strong>
+          <strong className="campaign-banner__title--desktop">{saleCampaign.title}</strong>
+          <strong className="campaign-banner__title--mobile">
+            {available ? "خصم حتى 20% حسب طريقة الدفع" : "اكتمل العرض الحالي"}
+          </strong>
           <span>
             {available
               ? status.remainingCustomers === null
