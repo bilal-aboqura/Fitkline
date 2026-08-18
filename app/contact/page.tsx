@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { ContactForm } from "@/components/forms/contact-form";
 import { getCmsContent } from "@/lib/cms-store";
 
 export const metadata: Metadata = {
@@ -27,7 +26,7 @@ export default async function ContactPage() {
         </div>
       </section>
       <section className="content-section content-section--redesign">
-        <div className="fit-container contact-layout">
+        <div className="fit-container">
           <div className="contact-intro">
             <p className="section-heading__kicker">{page.kicker}</p>
             <h2>{page.sectionTitle}</h2>
@@ -38,7 +37,6 @@ export default async function ContactPage() {
               ))}
             </div>
           </div>
-          <ContactForm content={page.form} />
         </div>
       </section>
     </main>
