@@ -148,9 +148,6 @@ export function ProductSystem({ products, content }: ProductSystemProps) {
                     >
                       تفاصيل المنتج
                     </Link>
-                    <Link className="fit-button-secondary" href="/contact">
-                      اطلب عرض سعر
-                    </Link>
                   </div>
                 </div>
               </article>

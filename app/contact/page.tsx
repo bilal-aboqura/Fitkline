@@ -3,7 +3,7 @@ import { getCmsContent } from "@/lib/cms-store";
 
 export const metadata: Metadata = {
   title: "تواصل معنا",
-  description: "اطلب عرض سعر أو مساعدة لاختيار حلول Fitkline المناسبة لمنشأتك.",
+  description: "مساعدة لاختيار حلول Fitkline المناسبة لمنشأتك.",
 };
 
 export default async function ContactPage() {

@@ -43,7 +43,6 @@ export function SiteHeader({
         </nav>
 
         <div className="site-header__actions">
-          <Link className="site-header__quote" href="/contact">اطلب عرض سعر</Link>
           <Link className="site-cart-link" href="/cart" aria-label="السلة">
             <span aria-hidden="true">السلة</span>
             <span className="site-cart-link__count" aria-live="polite" suppressHydrationWarning>{itemCount}</span>

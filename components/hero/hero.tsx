@@ -109,9 +109,6 @@ export function Hero({ scenes }: { scenes: HomeContent["heroScenes"] }) {
                 <Link className="fit-button-primary" href="/products">
                   اكتشف المنتجات
                 </Link>
-                <Link className="fit-button-secondary" href="/contact">
-                  اطلب عرض سعر
-                </Link>
               </div>
             </article>
           ))}
