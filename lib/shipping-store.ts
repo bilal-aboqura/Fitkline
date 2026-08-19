@@ -111,8 +111,9 @@ export async function getShippingLocations(options?: { includeInactive?: boolean
 export async function resolveShippingLocation(
   governorateId: string,
   cityId: number,
+  options?: { includeInactive?: boolean },
 ) {
-  const locations = await getShippingLocations();
+  const locations = await getShippingLocations(options);
   const governorate = locations.find((item) => item.id === governorateId);
   const city = governorate?.cities.find((item) => item.id === cityId);
   if (!governorate || !city) return null;

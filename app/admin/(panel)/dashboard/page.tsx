@@ -4,6 +4,7 @@ import { getOrders } from "@/lib/order-store";
 import { getKashierConfiguration } from "@/lib/kashier";
 import { getSupabaseConfiguration } from "@/lib/supabase-server";
 import { getAnalyticsSummary } from "@/lib/analytics-store";
+import { getBostaConfiguration } from "@/lib/bosta";
 
 export const metadata = { title: "نظرة عامة" };
 
@@ -23,6 +24,7 @@ export default async function AdminDashboardPage() {
   );
   const kashier = getKashierConfiguration();
   const supabase = getSupabaseConfiguration();
+  const bosta = getBostaConfiguration();
   const todayVisitors = analytics.daily.at(-1)?.visitors ?? 0;
 
   return (
@@ -70,6 +72,7 @@ export default async function AdminDashboardPage() {
             <div><dt>الكتالوج</dt><dd className="is-good">{content.products.length} منتجات</dd></div>
             <div><dt>الدفع عند الاستلام</dt><dd className={content.settings.cashOnDeliveryEnabled ? "is-good" : ""}>{content.settings.cashOnDeliveryEnabled ? "مفعّل" : "متوقف"}</dd></div>
             <div><dt>كاشير</dt><dd className={kashier.ready && content.settings.kashierEnabled ? "is-good" : "is-warning"}>{kashier.ready && content.settings.kashierEnabled ? "جاهز" : "يحتاج إعداد"}</dd></div>
+            <div><dt>بوسطة</dt><dd className={bosta.ready ? "is-good" : "is-warning"}>{bosta.ready ? "متصل" : "يحتاج إعداد"}</dd></div>
           </dl>
           <Link className="admin-secondary-action" href="/admin/settings">راجع إعدادات الدفع</Link>
         </aside>

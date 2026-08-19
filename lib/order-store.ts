@@ -15,6 +15,32 @@ export type OrderStatus =
 export type PaymentStatus = "pending" | "paid" | "failed" | "not-required";
 export type PaymentMethod = "cod" | "kashier";
 
+export type BostaShipment = {
+  deliveryId: string;
+  trackingNumber: string;
+  stateCode: number;
+  stateValue?: string;
+  dashboardState?: string;
+  type?: string;
+  stateUpdatedAt: string;
+  deliveryPromiseDate?: string;
+  exceptionReason?: string;
+  exceptionCode?: number;
+  numberOfAttempts?: number;
+  timeline?: Array<{
+    value: string;
+    nextAction?: string;
+    done: boolean;
+    date?: string;
+  }>;
+  pickup?: {
+    id: string;
+    puid?: string;
+    scheduledDate: string;
+    scheduledTimeSlot?: string;
+  };
+};
+
 export type StoredOrder = {
   id: string;
   reference: string;
@@ -50,6 +76,7 @@ export type StoredOrder = {
   paymentStatus: PaymentStatus;
   kashierSessionId?: string;
   kashierPaymentId?: string;
+  bosta?: BostaShipment;
   notes?: string;
 };
 
@@ -69,6 +96,7 @@ type OrderRow = {
   payment_status: PaymentStatus;
   kashier_session_id: string | null;
   kashier_payment_id: string | null;
+  bosta: BostaShipment | null;
   notes: string | null;
 };
 
@@ -97,6 +125,7 @@ function fromRow(row: OrderRow): StoredOrder {
     ...(row.kashier_payment_id
       ? { kashierPaymentId: row.kashier_payment_id }
       : {}),
+    ...(row.bosta ? { bosta: row.bosta } : {}),
     ...(row.notes ? { notes: row.notes } : {}),
   };
 }
@@ -118,6 +147,7 @@ function toRow(order: StoredOrder) {
     payment_status: order.paymentStatus,
     kashier_session_id: order.kashierSessionId ?? null,
     kashier_payment_id: order.kashierPaymentId ?? null,
+    bosta: order.bosta ?? null,
     notes: order.notes ?? null,
   };
 }
@@ -151,6 +181,7 @@ export async function updateOrder(
       | "paymentStatus"
       | "kashierSessionId"
       | "kashierPaymentId"
+      | "bosta"
       | "notes"
     >
   >,
@@ -166,6 +197,7 @@ export async function updateOrder(
     updates.kashier_session_id = changes.kashierSessionId;
   if (changes.kashierPaymentId !== undefined)
     updates.kashier_payment_id = changes.kashierPaymentId;
+  if (changes.bosta !== undefined) updates.bosta = changes.bosta;
   if (changes.notes !== undefined) updates.notes = changes.notes;
 
   const { data, error } = await getSupabaseServerClient()
@@ -184,6 +216,17 @@ export async function findOrder(reference: string) {
     .from("fitkline_orders")
     .select("*")
     .eq("reference", reference)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? fromRow(data as OrderRow) : null;
+}
+
+export async function findOrderByBostaTrackingNumber(trackingNumber: string) {
+  noStore();
+  const { data, error } = await getSupabaseServerClient()
+    .from("fitkline_orders")
+    .select("*")
+    .eq("bosta->>trackingNumber", trackingNumber)
     .maybeSingle();
   if (error) throw error;
   return data ? fromRow(data as OrderRow) : null;

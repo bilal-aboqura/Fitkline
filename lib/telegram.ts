@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { StoredOrder } from "@/lib/order-store";
+import type { BostaPickup } from "@/lib/bosta";
 
 const TELEGRAM_API_BASE = "https://api.telegram.org";
 const TELEGRAM_REQUEST_TIMEOUT_MS = 8_000;
@@ -148,5 +149,85 @@ export async function notifyTelegramAboutNewOrder(order: StoredOrder) {
     );
   }
 
+  return true;
+}
+
+async function sendTelegramMessage(text: string) {
+  const config = getTelegramConfiguration();
+  if (!config.ready) throw new Error("Telegram is not configured.");
+  const response = await fetch(
+    `${TELEGRAM_API_BASE}/bot${config.botToken}/sendMessage`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: config.chatId,
+        text: fitTelegramMessage(text),
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(TELEGRAM_REQUEST_TIMEOUT_MS),
+    },
+  );
+  const result = (await response.json().catch(() => null)) as TelegramResponse | null;
+  if (!response.ok || !result?.ok) {
+    throw new Error(result?.description ?? "Telegram rejected the message.");
+  }
+}
+
+export async function notifyTelegramAboutBostaPickup(input: {
+  pickup: BostaPickup;
+  orders: StoredOrder[];
+  awbPdf: Uint8Array;
+}) {
+  const config = getTelegramConfiguration();
+  if (!config.ready) throw new Error("Telegram is not configured.");
+
+  const references = input.orders.map((order) => order.reference).join("، ");
+  const trackingNumbers = input.orders
+    .map((order) => order.bosta?.trackingNumber)
+    .filter(Boolean)
+    .join("، ");
+  await sendTelegramMessage(
+    [
+      "🚚 تم جدولة استلام بوسطة — Fitkline",
+      "",
+      `تاريخ الاستلام: ${input.pickup.scheduledDate}`,
+      `موعد الاستلام: ${input.pickup.scheduledTimeSlot ?? "تحدده بوسطة"}`,
+      `عدد الشحنات: ${input.orders.length}`,
+      `رقم طلب الاستلام: ${input.pickup.puid ?? input.pickup.id}`,
+      "",
+      `طلبات Fitkline: ${references}`,
+      `أرقام التتبع: ${trackingNumbers}`,
+      "",
+      "البوليصات مجمعة في ملف PDF واحد بالترتيب.",
+    ].join("\n"),
+  );
+
+  const form = new FormData();
+  form.set("chat_id", config.chatId);
+  form.set(
+    "caption",
+    `بوليصات بوسطة — ${input.pickup.scheduledDate} — ${input.orders.length} شحنات`,
+  );
+  form.set(
+    "document",
+    new Blob([Uint8Array.from(input.awbPdf).buffer], {
+      type: "application/pdf",
+    }),
+    `fitkline-bosta-awb-${input.pickup.scheduledDate}.pdf`,
+  );
+  const response = await fetch(
+    `${TELEGRAM_API_BASE}/bot${config.botToken}/sendDocument`,
+    {
+      method: "POST",
+      body: form,
+      cache: "no-store",
+      signal: AbortSignal.timeout(30_000),
+    },
+  );
+  const result = (await response.json().catch(() => null)) as TelegramResponse | null;
+  if (!response.ok || !result?.ok) {
+    throw new Error(result?.description ?? "Telegram rejected the AWB file.");
+  }
   return true;
 }

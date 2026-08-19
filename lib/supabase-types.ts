@@ -110,6 +110,7 @@ export type Database = {
           payment_status: string;
           kashier_session_id: string | null;
           kashier_payment_id: string | null;
+          bosta: unknown | null;
           notes: string | null;
         };
         Insert: {
@@ -128,6 +129,7 @@ export type Database = {
           payment_status: string;
           kashier_session_id?: string | null;
           kashier_payment_id?: string | null;
+          bosta?: unknown | null;
           notes?: string | null;
         };
         Update: {
@@ -136,7 +138,60 @@ export type Database = {
           payment_status?: string;
           kashier_session_id?: string | null;
           kashier_payment_id?: string | null;
+          bosta?: unknown | null;
           notes?: string | null;
+        };
+        Relationships: [];
+      };
+      fitkline_bosta_pickups: {
+        Row: {
+          automation_key: string;
+          bosta_pickup_id: string | null;
+          puid: string | null;
+          scheduled_date: string | null;
+          scheduled_time_slot: string | null;
+          state: string | null;
+          business_location_id: string | null;
+          order_references: unknown;
+          tracking_numbers: unknown;
+          parcel_count: number;
+          telegram_sent: boolean;
+          status: string;
+          error: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          automation_key: string;
+          bosta_pickup_id?: string | null;
+          puid?: string | null;
+          scheduled_date?: string | null;
+          scheduled_time_slot?: string | null;
+          state?: string | null;
+          business_location_id?: string | null;
+          order_references?: unknown;
+          tracking_numbers?: unknown;
+          parcel_count?: number;
+          telegram_sent?: boolean;
+          status: string;
+          error?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          bosta_pickup_id?: string | null;
+          puid?: string | null;
+          scheduled_date?: string | null;
+          scheduled_time_slot?: string | null;
+          state?: string | null;
+          business_location_id?: string | null;
+          order_references?: unknown;
+          tracking_numbers?: unknown;
+          parcel_count?: number;
+          telegram_sent?: boolean;
+          status?: string;
+          error?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
