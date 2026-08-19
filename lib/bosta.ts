@@ -152,6 +152,19 @@ const governorateCodes: Record<string, string> = {
   matrooh: "EG-28",
 };
 
+// Bosta's operational cities do not always follow Egyptian governorate borders,
+// and some names use different transliterations from the checkout dataset.
+const bostaLocationOverrides: Record<
+  number,
+  { cityCode?: string; districtAliases: string[] }
+> = {
+  1: { districtAliases: ["Hadayeq El Zeitoun"] },
+  13: { districtAliases: ["5th Settlement"] },
+  31: { districtAliases: ["Downtown Cairo"] },
+  75: { cityCode: "EG-01", districtAliases: ["Mohandesiin"] },
+  94: { districtAliases: ["ElBadrashein"] },
+};
+
 export class BostaIntegrationError extends Error {
   constructor(
     message: string,
@@ -264,11 +277,20 @@ function normalized(value: string) {
     .replace(/[^\p{L}\p{N}]+/gu, "");
 }
 
+function withoutArabicArticle(value: string) {
+  const compact = normalized(value);
+  return compact.startsWith("ال") ? compact.slice(2) : compact;
+}
+
 function findDistrict(
   districts: BostaDistrict[],
   names: string[],
 ) {
-  const candidates = new Set(names.filter(Boolean).map(normalized));
+  const sourceNames = names.filter(Boolean);
+  const candidates = new Set(sourceNames.map(normalized));
+  const candidatesWithoutArticle = new Set(
+    sourceNames.map(withoutArabicArticle),
+  );
   const available = districts.filter(
     (district) => district.dropOffAvailability !== false,
   );
@@ -279,6 +301,35 @@ function findDistrict(
   );
   if (direct) return direct;
 
+  const articleInsensitive = available.find((district) =>
+    [district.districtName, district.districtOtherName ?? ""].some((name) =>
+      candidatesWithoutArticle.has(withoutArabicArticle(name)),
+    ),
+  );
+  if (articleInsensitive) return articleInsensitive;
+
+  const addressMatches = available
+    .map((district) => {
+      const districtNames = [
+        district.districtName,
+        district.districtOtherName ?? "",
+      ]
+        .map(normalized)
+        .filter((name) => name.length >= 5);
+      const longestMatch = Math.max(
+        0,
+        ...districtNames
+          .filter((name) =>
+            Array.from(candidates).some((candidate) => candidate.includes(name)),
+          )
+          .map((name) => name.length),
+      );
+      return { district, longestMatch };
+    })
+    .filter((item) => item.longestMatch > 0)
+    .sort((left, right) => right.longestMatch - left.longestMatch);
+  if (addressMatches[0]) return addressMatches[0].district;
+
   const zoneMatches = available.filter((district) =>
     [district.zoneName, district.zoneOtherName ?? ""].some((name) =>
       candidates.has(normalized(name)),
@@ -288,7 +339,20 @@ function findDistrict(
     zoneMatches.find(
       (district) =>
         normalized(district.districtName) === normalized(district.zoneName),
-    ) ?? zoneMatches[0]
+    ) ??
+    zoneMatches[0] ??
+    available.find((district) =>
+      [district.districtName, district.districtOtherName ?? ""].some((name) =>
+        Array.from(candidates).some((candidate) => {
+          const districtName = normalized(name);
+          return (
+            candidate.length >= 5 &&
+            districtName.length >= 5 &&
+            (candidate.includes(districtName) || districtName.includes(candidate))
+          );
+        }),
+      ),
+    )
   );
 }
 
@@ -305,7 +369,8 @@ async function getBostaAddress(order: StoredOrder) {
     );
   }
 
-  const code = governorateCodes[location.governorate.id];
+  const override = bostaLocationOverrides[location.city.id];
+  const code = override?.cityCode ?? governorateCodes[location.governorate.id];
   if (!code) {
     throw new BostaIntegrationError(
       `المحافظة «${location.governorate.nameAr}» غير مربوطة بمناطق بوسطة.`,
@@ -333,16 +398,23 @@ async function getBostaAddress(order: StoredOrder) {
     false,
   );
   const district = findDistrict(districts, [
+    order.customer.address,
+    ...(override?.districtAliases ?? []),
     location.city.nameAr,
     location.city.nameEn,
   ]);
+  if (!district) {
+    throw new BostaIntegrationError(
+      `تعذر مطابقة منطقة «${location.city.nameAr}» مع مناطق بوسطة. اختر مدينة/منطقة أدق في الطلب.`,
+      400,
+    );
+  }
 
   return {
     city: bostaCity.name,
     cityId: bostaCity._id,
-    ...(district
-      ? { districtId: district.districtId, zoneId: district.zoneId }
-      : { districtName: location.city.nameEn }),
+    districtId: district.districtId,
+    zoneId: district.zoneId,
     firstLine: order.customer.address,
     isWorkAddress: false,
   };

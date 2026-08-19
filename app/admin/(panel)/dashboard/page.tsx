@@ -14,11 +14,14 @@ export default async function AdminDashboardPage() {
     getOrders(),
     getAnalyticsSummary(7),
   ]);
-  const paidOrders = orders.filter((order) => order.paymentStatus === "paid");
+  const paidKashierOrders = orders.filter(
+    (order) =>
+      order.paymentMethod === "kashier" && order.paymentStatus === "paid",
+  );
   const openOrders = orders.filter(
     (order) => !["completed", "cancelled"].includes(order.orderStatus),
   );
-  const revenue = paidOrders.reduce(
+  const kashierRevenue = paidKashierOrders.reduce(
     (total, order) => total + (order.total ?? 0),
     0,
   );
@@ -41,7 +44,7 @@ export default async function AdminDashboardPage() {
       <section className="admin-metrics" aria-label="ملخص الأداء">
         <article><span>إجمالي الطلبات</span><strong>{orders.length}</strong><small>من أول تشغيل الداشبورد</small></article>
         <article><span>طلبات مفتوحة</span><strong>{openOrders.length}</strong><small>تحتاج متابعة أو تنفيذ</small></article>
-        <article><span>تحصيل كاشير</span><strong dir="ltr">{revenue.toLocaleString("en-US")}</strong><small>جنيه مصري مدفوع ومسجل</small></article>
+        <article><span>تحصيل كاشير</span><strong dir="ltr">{kashierRevenue.toLocaleString("en-US")}</strong><small>جنيه مصري مدفوع ومسجل</small></article>
         <article><span>زوار اليوم</span><strong>{todayVisitors}</strong><small>{analytics.available ? "متصفحات فريدة تقريبًا" : "فعّل قاعدة بيانات التحليلات"}</small></article>
       </section>
 
