@@ -127,9 +127,10 @@ local Cairo hour is exactly 00:00 (12:00 AM), so only one call can proceed. It t
 4. Uses Bosta's first available pickup date, default pickup location/contact,
    and the selected delivery tracking numbers.
 5. Creates one pickup for all eligible parcels and marks the orders processing.
-6. Downloads one Arabic A4 mass-AWB PDF and sends the schedule plus PDF to the
-   configured Telegram destination. Failed Telegram documents are retried on a
-   later automation run.
+6. Downloads the Arabic AWBs, arranges every two labels vertically on one A4
+   sheet, and sends the schedule plus the combined PDF to the configured
+   Telegram destination. An odd final label stays in the top half of its own
+   sheet. Failed Telegram documents are retried on a later automation run.
 
 The schedule is declared in `vercel.json`. Add `CRON_SECRET` to the Production
 environment in Vercel; Vercel sends it as a Bearer token automatically.

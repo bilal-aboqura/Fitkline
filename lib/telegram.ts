@@ -199,7 +199,7 @@ export async function notifyTelegramAboutBostaPickup(input: {
       `طلبات Fitkline: ${references}`,
       `أرقام التتبع: ${trackingNumbers}`,
       "",
-      "البوليصات مجمعة في ملف PDF واحد بالترتيب.",
+      "البوليصات مجمعة في ملف PDF واحد: كل بوليصتين في ورقة A4.",
     ].join("\n"),
   );
 
@@ -207,14 +207,14 @@ export async function notifyTelegramAboutBostaPickup(input: {
   form.set("chat_id", config.chatId);
   form.set(
     "caption",
-    `بوليصات بوسطة — ${input.pickup.scheduledDate} — ${input.orders.length} شحنات`,
+    `بوليصات بوسطة — ${input.pickup.scheduledDate} — ${input.orders.length} شحنات — 2 في كل ورقة`,
   );
   form.set(
     "document",
     new Blob([Uint8Array.from(input.awbPdf).buffer], {
       type: "application/pdf",
     }),
-    `fitkline-bosta-awb-${input.pickup.scheduledDate}.pdf`,
+    `fitkline-bosta-awb-2up-${input.pickup.scheduledDate}.pdf`,
   );
   const response = await fetch(
     `${TELEGRAM_API_BASE}/bot${config.botToken}/sendDocument`,

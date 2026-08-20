@@ -218,6 +218,7 @@ function bostaErrorMessage(result: BostaResponse<unknown>, status: number) {
     "1083": "لا يمكن جدولة الاستلام في تاريخ سابق.",
     "2022": "التاريخ المحدد إجازة لدى بوسطة.",
     "2027": "تم إنشاء طلب استلام بالفعل اليوم.",
+    "777": "بيانات تكرار طلب الاستلام غير صالحة.",
   };
   const translated = result.errorCode
     ? known[String(result.errorCode)]
@@ -743,7 +744,6 @@ export async function createBostaPickup(input: {
       hasFragileItems: Boolean(input.hasFragileItems),
       hasBigItems: input.hasBigItems,
       trackingNumbers: input.trackingNumbers,
-      repeatedData: { repeatedType: "One Time", days: [] },
     }),
   });
   if (!pickup._id) {

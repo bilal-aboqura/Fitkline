@@ -86,29 +86,23 @@ function PickupAutomationPanel({
   const confirmed = orders.filter(
     (order) => order.orderStatus === "confirmed" && !order.bosta?.pickup?.id,
   ).length;
-  const latest = pickups.find((pickup) => pickup.status === "completed");
   return (
     <section className="admin-panel admin-pickup-automation" aria-label="جدولة استلام بوسطة التلقائية">
       <div className="admin-panel__header">
-        <div>
-          <p className="admin-eyebrow">BOSTA AUTO PICKUP</p>
-          <h2>جدولة الاستلام التلقائية</h2>
-        </div>
+        <h2>جدولة الاستلام التلقائية</h2>
         <span className={`admin-connection${confirmed >= 3 ? " is-ready" : ""}`}>
           {confirmed >= 3 ? "جاهز للجدولة" : `${confirmed}/3 طلبات مؤكدة`}
         </span>
       </div>
       <div className="admin-pickup-automation__summary">
-        <div><span>موعد التشغيل</span><strong dir="ltr">12:00 AM</strong><small>منتصف الليل بتوقيت القاهرة يوميًا</small></div>
-        <div><span>الحد الأدنى</span><strong>3</strong><small>تُرحّل الطلبات الأقل لليوم التالي</small></div>
-        <div><span>آخر استلام</span><strong>{latest?.parcelCount ?? "—"}</strong><small>{latest?.scheduledDate ? `مجدول في ${latest.scheduledDate}` : "لم تتم جدولة استلام بعد"}</small></div>
-        <div><span>Telegram</span><strong>{latest ? (latest.telegramSent ? "تم" : "معلّق") : "—"}</strong><small>ملف بوليصات PDF مجمّع</small></div>
+        <div><span>التشغيل اليومي</span><strong dir="ltr">12:00 AM</strong></div>
+        <div><span>الحد الأدنى</span><strong>3 طلبات</strong></div>
       </div>
       {pickups.length ? (
         <div className="admin-pickup-history">
           {pickups.slice(0, 4).map((pickup) => (
             <div key={pickup.automationKey}>
-              <span><b>{pickup.scheduledDate ?? pickup.createdAt.slice(0, 10)}</b><small dir="ltr">{pickup.puid ?? pickup.bostaPickupId ?? pickup.automationKey}</small></span>
+              <span><b>{pickup.scheduledDate ?? pickup.createdAt.slice(0, 10)}</b></span>
               <span><b>{pickup.parcelCount} شحنات</b><small>{pickup.scheduledTimeSlot ?? "الموعد تحدده بوسطة"}</small></span>
               <span className={`admin-pickup-run admin-pickup-run--${pickup.status}`}>
                 {pickup.status === "completed" ? "تمت الجدولة" : pickup.status === "skipped" ? "أقل من 3" : pickup.status === "running" ? "جاري التنفيذ" : "تعذر التنفيذ"}

@@ -9,6 +9,7 @@ import {
   listBostaPickupLocations,
   type BostaPickup,
 } from "@/lib/bosta";
+import { arrangeBostaAwbTwoPerA4 } from "@/lib/bosta-awb";
 import { getOrders, updateOrder, type StoredOrder } from "@/lib/order-store";
 import {
   claimBostaPickupAutomation,
@@ -49,7 +50,8 @@ async function sendPickupToTelegram(
   const trackingNumbers = orders
     .map((order) => order.bosta?.trackingNumber)
     .filter((value): value is string => Boolean(value));
-  const awbPdf = await downloadBostaAwb(trackingNumbers.join(","));
+  const rawAwbPdf = await downloadBostaAwb(trackingNumbers.join(","));
+  const awbPdf = await arrangeBostaAwbTwoPerA4(rawAwbPdf);
   await notifyTelegramAboutBostaPickup({ pickup, orders, awbPdf });
 }
 
