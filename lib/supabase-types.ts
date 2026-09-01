@@ -111,6 +111,7 @@ export type Database = {
           kashier_session_id: string | null;
           kashier_payment_id: string | null;
           bosta: unknown | null;
+          mylerz: unknown | null;
           notes: string | null;
         };
         Insert: {
@@ -130,6 +131,7 @@ export type Database = {
           kashier_session_id?: string | null;
           kashier_payment_id?: string | null;
           bosta?: unknown | null;
+          mylerz?: unknown | null;
           notes?: string | null;
         };
         Update: {
@@ -139,6 +141,7 @@ export type Database = {
           kashier_session_id?: string | null;
           kashier_payment_id?: string | null;
           bosta?: unknown | null;
+          mylerz?: unknown | null;
           notes?: string | null;
         };
         Relationships: [];

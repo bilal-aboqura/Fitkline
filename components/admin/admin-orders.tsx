@@ -7,6 +7,7 @@ import {
   getBostaStateMeta,
 } from "@/lib/bosta-status";
 import type { BostaStatusKey } from "@/lib/bosta-status";
+import { mylerzStatusLabel } from "@/lib/mylerz-status";
 import type { OrderStatus, StoredOrder } from "@/lib/order-store";
 import type { StoredBostaPickup } from "@/lib/pickup-store";
 
@@ -74,6 +75,32 @@ function BostaStatus({ order, compact = false }: { order: StoredOrder; compact?:
       </small>
     </span>
   );
+}
+
+function MylerzStatus({ order, compact = false }: { order: StoredOrder; compact?: boolean }) {
+  if (!order.mylerz) {
+    return (
+      <span className="admin-bosta-status admin-bosta-status--muted">
+        غير مرسل لـMylerz
+      </span>
+    );
+  }
+  const display = mylerzStatusLabel(order.mylerz.status);
+  return (
+    <span className={`admin-bosta-status admin-bosta-status--${display.tone}`}>
+      {display.label}
+      <small dir="ltr">
+        {order.mylerz.status}
+        {!compact ? ` · #${order.mylerz.trackingNumber}` : ""}
+      </small>
+    </span>
+  );
+}
+
+function ShipmentStatus({ order, compact = false }: { order: StoredOrder; compact?: boolean }) {
+  if (order.bosta) return <BostaStatus order={order} compact={compact} />;
+  if (order.mylerz) return <MylerzStatus order={order} compact={compact} />;
+  return <BostaStatus order={order} compact={compact} />;
 }
 
 function PickupAutomationPanel({
@@ -161,12 +188,15 @@ function OrderPrintSheet({ order }: { order: StoredOrder }) {
             {order.kashierPaymentId ? (
               <div><dt>رقم عملية الدفع</dt><dd dir="ltr">{order.kashierPaymentId}</dd></div>
             ) : null}
-            <div><dt>حالة بوسطة</dt><dd>{order.bosta ? getBostaDisplayStatus(order.bosta).label : "غير مرسل لبوسطة"}</dd></div>
+            <div><dt>حالة الشحن</dt><dd>{order.bosta ? getBostaDisplayStatus(order.bosta).label : order.mylerz ? mylerzStatusLabel(order.mylerz.status).label : "غير مرسل"}</dd></div>
             {order.bosta ? (
               <div><dt>حالة Bosta الأصلية</dt><dd dir="ltr">{order.bosta.stateValue ?? getBostaStateMeta(order.bosta.stateCode).value}</dd></div>
             ) : null}
             {order.bosta ? (
               <div><dt>رقم التتبع</dt><dd dir="ltr">{order.bosta.trackingNumber}</dd></div>
+            ) : null}
+            {order.mylerz ? (
+              <><div><dt>شركة الشحن</dt><dd>Mylerz</dd></div><div><dt>رقم التتبع</dt><dd dir="ltr">{order.mylerz.trackingNumber}</dd></div></>
             ) : null}
             <div><dt>آخر تحديث</dt><dd>{new Date(order.updatedAt).toLocaleString("ar-EG")}</dd></div>
           </dl>
@@ -232,10 +262,11 @@ export function AdminOrders({
   const [orders, setOrders] = useState(initialOrders);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
-  const [shippingFilter, setShippingFilter] = useState<"all" | "not-sent" | BostaStatusKey>("all");
+  const [shippingFilter, setShippingFilter] = useState<"all" | "not-sent" | "mylerz" | BostaStatusKey>("all");
   const [message, setMessage] = useState("");
   const [savingReference, setSavingReference] = useState<string | null>(null);
   const [bostaReference, setBostaReference] = useState<string | null>(null);
+  const [mylerzReference, setMylerzReference] = useState<string | null>(null);
   const [importingBosta, setImportingBosta] = useState(false);
   const [printOrder, setPrintOrder] = useState<StoredOrder | null>(null);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>(() =>
@@ -252,7 +283,9 @@ export function AdminOrders({
       const matchesShipping =
         shippingFilter === "all" ||
         (shippingFilter === "not-sent"
-          ? !order.bosta
+          ? !order.bosta && !order.mylerz
+          : shippingFilter === "mylerz"
+            ? Boolean(order.mylerz)
           : displayStatus?.key === shippingFilter);
       const matchesQuery =
         !normalized ||
@@ -261,6 +294,7 @@ export function AdminOrders({
         order.customer.phone.includes(normalized) ||
         order.customer.alternatePhone?.includes(normalized) ||
         order.bosta?.trackingNumber.includes(normalized) ||
+        order.mylerz?.trackingNumber.includes(normalized) ||
         (order.bosta
           ? [
               displayStatus?.label,
@@ -412,6 +446,29 @@ export function AdminOrders({
     }
   }
 
+  async function runMylerzAction(reference: string, action: "create" | "sync") {
+    setMylerzReference(reference);
+    setMessage(action === "create" ? "جاري إنشاء الشحنة في Mylerz…" : "جاري جلب أحدث حالة من Mylerz…");
+    try {
+      const response = await fetch("/api/admin/orders/mylerz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference, action }),
+      });
+      const result = (await response.json()) as { data?: StoredOrder; error?: string };
+      if (!response.ok || !result.data) {
+        setMessage(result.error ?? "تعذر تنفيذ طلب Mylerz.");
+        return;
+      }
+      setOrders((current) => current.map((order) => order.reference === reference ? result.data! : order));
+      setMessage(action === "create" ? `تم إنشاء شحنة Mylerz للطلب ${reference}.` : `تم تحديث حالة شحنة ${reference}.`);
+    } catch {
+      setMessage("تعذر الاتصال بالخادم. حاول مرة أخرى.");
+    } finally {
+      setMylerzReference(null);
+    }
+  }
+
   return (
     <>
       <PickupAutomationPanel orders={orders} pickups={initialPickups} />
@@ -437,10 +494,11 @@ export function AdminOrders({
           <span className="sr-only">فلترة حسب حالة بوسطة</span>
           <select
             value={shippingFilter}
-            onChange={(event) => setShippingFilter(event.target.value as "all" | "not-sent" | BostaStatusKey)}
+            onChange={(event) => setShippingFilter(event.target.value as "all" | "not-sent" | "mylerz" | BostaStatusKey)}
           >
             <option value="all">الحالة الحالية — كل الحالات</option>
-            <option value="not-sent">غير مرسل لبوسطة</option>
+            <option value="not-sent">غير مرسل لشركة شحن</option>
+            <option value="mylerz">شحنات Mylerz</option>
             {bostaStatusGroups.map((group) => (
               <optgroup key={group.id} label={group.label}>
                 {group.options.map((option) => (
@@ -489,7 +547,7 @@ export function AdminOrders({
                 <span className={`admin-status admin-status--${order.orderStatus}`}>
                   {statusLabels[order.orderStatus]}
                 </span>
-                <BostaStatus order={order} compact />
+                <ShipmentStatus order={order} compact />
               </summary>
               <div className="admin-order-detail">
                 <section>
@@ -547,7 +605,7 @@ export function AdminOrders({
                         ) : null}
                       </dl>
                     ) : (
-                      <p>أنشئ الشحنة ليظهر رقم التتبع وتصل تحديثات بوسطة تلقائيًا.</p>
+                      <p>{order.mylerz ? "الطلب مربوط بـMylerz بالفعل. استخدم شركة شحن واحدة لكل طلب." : "أنشئ الشحنة ليظهر رقم التتبع وتصل تحديثات بوسطة تلقائيًا."}</p>
                     )}
                     {order.bosta?.exceptionReason ? (
                       <p className="admin-order-bosta__exception">
@@ -579,7 +637,7 @@ export function AdminOrders({
                       <button
                         className="admin-primary-action"
                         type="button"
-                        disabled={bostaReference === order.reference}
+                        disabled={bostaReference === order.reference || Boolean(order.mylerz)}
                         onClick={() => void runBostaAction(
                           order.reference,
                           order.bosta ? "sync" : "create",
@@ -599,6 +657,42 @@ export function AdminOrders({
                           طباعة بوليصة الشحن
                         </a>
                       ) : null}
+                    </div>
+                  </section>
+                  <section className="admin-order-bosta" aria-label="شحن Mylerz">
+                    <div>
+                      <span className="admin-order-bosta__brand">MYLERZ SHIPPING</span>
+                      <MylerzStatus order={order} />
+                    </div>
+                    {order.mylerz ? (
+                      <>
+                        <dl>
+                          <div><dt>الحالة الحالية</dt><dd>{mylerzStatusLabel(order.mylerz.status).label}</dd></div>
+                          <div><dt>حالة Mylerz</dt><dd dir="ltr">{order.mylerz.status}</dd></div>
+                          <div><dt>آخر تحديث</dt><dd>{new Date(order.mylerz.statusUpdatedAt).toLocaleString("ar-EG")}</dd></div>
+                          {order.mylerz.pickupOrderCode ? <div><dt>رقم طلب الاستلام</dt><dd dir="ltr">{order.mylerz.pickupOrderCode}</dd></div> : null}
+                        </dl>
+                        {order.mylerz.timeline?.length ? (
+                          <ol className="admin-bosta-timeline" aria-label="مراحل الشحنة في Mylerz">
+                            {order.mylerz.timeline.map((step, index) => (
+                              <li className="is-done" key={`${step.status}-${index}`}><span aria-hidden="true" /><div><b dir="ltr">{step.status}</b>{step.changedAt ? <time dir="ltr">{step.changedAt}</time> : null}</div></li>
+                            ))}
+                          </ol>
+                        ) : null}
+                      </>
+                    ) : (
+                      <p>{order.bosta ? "الطلب مربوط ببوسطة بالفعل. استخدم شركة شحن واحدة لكل طلب." : "أنشئ شحنة Mylerz ليظهر رقم التتبع والبوليصة وحالة الشحنة."}</p>
+                    )}
+                    <div className="admin-order-bosta__actions">
+                      <button
+                        className="admin-primary-action"
+                        type="button"
+                        disabled={mylerzReference === order.reference || Boolean(order.bosta)}
+                        onClick={() => void runMylerzAction(order.reference, order.mylerz ? "sync" : "create")}
+                      >
+                        {mylerzReference === order.reference ? "جاري الاتصال بـMylerz…" : order.mylerz ? "تحديث من Mylerz" : "إنشاء شحنة Mylerz"}
+                      </button>
+                      {order.mylerz ? <a className="admin-secondary-action" href={`/api/admin/orders/mylerz/awb?reference=${encodeURIComponent(order.reference)}`}>طباعة بوليصة الشحن</a> : null}
                     </div>
                   </section>
                   <label>

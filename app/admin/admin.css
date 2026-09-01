@@ -1463,7 +1463,8 @@ body:has(.admin-root) .site-footer {
 }
 
 .admin-bosta-status--new,
-.admin-bosta-status--progress {
+.admin-bosta-status--progress,
+.admin-bosta-status--info {
   border-color: #a9c875;
   background: #eff8df;
   color: #476d11;

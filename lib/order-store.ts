@@ -41,6 +41,17 @@ export type BostaShipment = {
   };
 };
 
+export type MylerzShipment = {
+  trackingNumber: string;
+  status: string;
+  statusUpdatedAt: string;
+  pickupOrderCode?: string;
+  timeline?: Array<{
+    status: string;
+    changedAt?: string;
+  }>;
+};
+
 export type StoredOrder = {
   id: string;
   reference: string;
@@ -77,6 +88,7 @@ export type StoredOrder = {
   kashierSessionId?: string;
   kashierPaymentId?: string;
   bosta?: BostaShipment;
+  mylerz?: MylerzShipment;
   notes?: string;
 };
 
@@ -97,6 +109,7 @@ type OrderRow = {
   kashier_session_id: string | null;
   kashier_payment_id: string | null;
   bosta: BostaShipment | null;
+  mylerz: MylerzShipment | null;
   notes: string | null;
 };
 
@@ -126,6 +139,7 @@ function fromRow(row: OrderRow): StoredOrder {
       ? { kashierPaymentId: row.kashier_payment_id }
       : {}),
     ...(row.bosta ? { bosta: row.bosta } : {}),
+    ...(row.mylerz ? { mylerz: row.mylerz } : {}),
     ...(row.notes ? { notes: row.notes } : {}),
   };
 }
@@ -148,6 +162,7 @@ function toRow(order: StoredOrder) {
     kashier_session_id: order.kashierSessionId ?? null,
     kashier_payment_id: order.kashierPaymentId ?? null,
     bosta: order.bosta ?? null,
+    mylerz: order.mylerz ?? null,
     notes: order.notes ?? null,
   };
 }
@@ -182,6 +197,7 @@ export async function updateOrder(
       | "kashierSessionId"
       | "kashierPaymentId"
       | "bosta"
+      | "mylerz"
       | "notes"
     >
   >,
@@ -198,6 +214,7 @@ export async function updateOrder(
   if (changes.kashierPaymentId !== undefined)
     updates.kashier_payment_id = changes.kashierPaymentId;
   if (changes.bosta !== undefined) updates.bosta = changes.bosta;
+  if (changes.mylerz !== undefined) updates.mylerz = changes.mylerz;
   if (changes.notes !== undefined) updates.notes = changes.notes;
 
   const { data, error } = await getSupabaseServerClient()

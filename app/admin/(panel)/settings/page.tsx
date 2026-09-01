@@ -4,6 +4,7 @@ import { getKashierConfiguration } from "@/lib/kashier";
 import { getSupabaseConfiguration } from "@/lib/supabase-server";
 import { getShippingLocations } from "@/lib/shipping-store";
 import { getBostaConfiguration, verifyBostaConnection } from "@/lib/bosta";
+import { getMylerzConfiguration, verifyMylerzConnection } from "@/lib/mylerz";
 
 export const metadata = { title: "الإعدادات والدفع" };
 
@@ -17,6 +18,10 @@ export default async function AdminSettingsPage() {
   const bosta = getBostaConfiguration();
   const bostaConnection = bosta.ready
     ? await verifyBostaConnection().catch(() => null)
+    : null;
+  const mylerz = getMylerzConfiguration();
+  const mylerzConnection = mylerz.ready
+    ? await verifyMylerzConnection().catch(() => null)
     : null;
   const checks = [
     { label: "Merchant ID", ready: Boolean(kashier.merchantId) },
@@ -73,6 +78,26 @@ export default async function AdminSettingsPage() {
           {!bosta.ready ? (
             <div className="admin-alert admin-alert--warning">
               أضف BOSTA_API_KEY وBOSTA_WEBHOOK_SECRET وتأكد أن رابط الموقع العام HTTPS، ثم أعد تشغيل الموقع.
+            </div>
+          ) : null}
+          <Link className="admin-secondary-action" href="/admin/orders">افتح الطلبات والشحن</Link>
+        </section>
+
+        <section className="admin-panel admin-payment-panel">
+          <div className="admin-panel__header">
+            <div><p className="admin-eyebrow">MYLERZ SHIPPING API</p><h2>Mylerz للشحن والتتبع</h2></div>
+            <span className={`admin-connection${mylerzConnection ? " is-ready" : ""}`}>{mylerzConnection ? "متصل" : mylerz.ready ? "تعذر الفحص" : "غير مكتمل"}</span>
+          </div>
+          <p>إنشاء شحنات Mylerz، تحديث حالتها، وطباعة البوليصة متاح من صفحة الطلبات. بيانات الدخول تظل على الخادم فقط.</p>
+          <dl>
+            <div><dt>اسم المستخدم</dt><dd className={mylerz.username ? "is-good" : "is-warning"}>{mylerz.username ? "جاهز" : "ناقص"}</dd></div>
+            <div><dt>كلمة المرور</dt><dd className={mylerz.password ? "is-good" : "is-warning"}>{mylerz.password ? "جاهز" : "ناقص"}</dd></div>
+            <div><dt>المخازن المتاحة</dt><dd>{mylerzConnection?.warehouses ?? "—"}</dd></div>
+            <div><dt>المخزن المحدد</dt><dd>{mylerz.warehouseName || "يختاره Mylerz افتراضيًا"}</dd></div>
+          </dl>
+          {!mylerz.ready ? (
+            <div className="admin-alert admin-alert--warning">
+              أضف MYLERZ_USERNAME وMYLERZ_PASSWORD في متغيرات البيئة، ثم أعد تشغيل الموقع.
             </div>
           ) : null}
           <Link className="admin-secondary-action" href="/admin/orders">افتح الطلبات والشحن</Link>
