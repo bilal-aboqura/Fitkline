@@ -2,6 +2,7 @@ import "server-only";
 
 import { unstable_noStore as noStore } from "next/cache";
 import type { Product } from "@/data/products";
+import { validateOffers, type StoreOffer } from "@/data/offers";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 
 export type SiteSettings = {
@@ -113,6 +114,7 @@ export type CmsContent = {
   home: HomeContent;
   pages: PagesContent;
   products: Product[];
+  offers: StoreOffer[];
 };
 
 const allowedSizeIds = new Set(["4kg", "20kg"]);
@@ -135,6 +137,7 @@ export function validateCmsContent(value: unknown): asserts value is CmsContent 
   if (!content.settings || !content.home || !content.pages || !Array.isArray(content.products)) {
     throw new Error("Content settings, home, pages, and products are required");
   }
+  if (content.offers !== undefined) validateOffers(content.offers);
 
   assertText(content.settings.siteName, "settings.siteName");
   assertText(content.settings.logoUrl, "settings.logoUrl");
@@ -231,6 +234,9 @@ export async function getCmsContent() {
     .single();
   if (error) throw error;
   const content: unknown = data.content;
+  if (content && typeof content === "object" && !("offers" in content)) {
+    (content as { offers: StoreOffer[] }).offers = [];
+  }
   validateCmsContent(content);
   return content;
 }

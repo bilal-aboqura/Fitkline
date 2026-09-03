@@ -6,6 +6,7 @@ import {
   syncBostaDelivery,
 } from "@/lib/bosta";
 import { getOrders, updateOrder, type StoredOrder } from "@/lib/order-store";
+import { sendMetaOrderCancelled } from "@/lib/meta-conversions";
 import { phoneComparisonKey } from "@/lib/phone";
 
 function uniqueOrder(orders: StoredOrder[]) {
@@ -106,6 +107,9 @@ export async function importExistingBostaDeliveries(): Promise<BostaImportResult
         : {}),
     });
     if (!updated) continue;
+    if (order.orderStatus !== "cancelled" && updated.orderStatus === "cancelled") {
+      await sendMetaOrderCancelled(updated);
+    }
 
     updatedOrders.push(updated);
     if (matchType === "existing") refreshed += 1;

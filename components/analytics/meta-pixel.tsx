@@ -6,12 +6,14 @@ import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { flushMetaEventQueue } from "@/components/analytics/meta-events";
+import { META_PIXEL_ID } from "@/components/analytics/meta-config";
 
-const META_PIXEL_ID = "1052393730508570";
+export { META_PIXEL_ID } from "@/components/analytics/meta-config";
 
 declare global {
   interface Window {
     fbq?: (...args: unknown[]) => void;
+    fitklineMetaUserData?: Record<string, string>;
   }
 }
 
@@ -44,7 +46,9 @@ export function MetaPixel() {
           t.src=v;s=b.getElementsByTagName(e)[0];
           s.parentNode.insertBefore(t,s)}(window, document,'script',
           'https://connect.facebook.net/en_US/fbevents.js');
-          fbq('init', '${META_PIXEL_ID}');
+          // Customer identifiers are populated only after a shopper submits
+          // the checkout form. The pixel hashes these values with SHA-256.
+          fbq('init', '${META_PIXEL_ID}', window.fitklineMetaUserData || {});
           fbq('track', 'PageView');
         `}
       </Script>

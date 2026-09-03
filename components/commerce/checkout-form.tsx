@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { trackMetaEvent } from "@/components/analytics/meta-events";
+import {
+  setMetaAdvancedMatching,
+  trackMetaEvent,
+} from "@/components/analytics/meta-events";
 import { useCart } from "@/components/commerce/cart-provider";
 import { useCampaign } from "@/components/commerce/campaign-provider";
 import {
@@ -167,6 +170,10 @@ export function CheckoutForm({
     }
     setLoading(true);
     try {
+      setMetaAdvancedMatching({
+        email: formData.get("email"),
+        phone,
+      });
       const response = await fetch("/api/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -18,12 +18,14 @@ export type CartItem = {
   readonly unitPrice?: number | null;
   quantity: number;
   readonly image: string;
+  readonly offerId?: string;
 };
 
 type CartContextValue = {
   items: CartItem[];
   itemCount: number;
   addItem: (item: Omit<CartItem, "key" | "quantity">) => void;
+  addBundle: (items: Array<Omit<CartItem, "key" | "quantity">>) => void;
   updateQuantity: (key: string, quantity: number) => void;
   removeItem: (key: string) => void;
   clearCart: () => void;
@@ -75,10 +77,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const items = useMemo(() => readItems(snapshot), [snapshot]);
 
   const addItem = (item: Omit<CartItem, "key" | "quantity">) => {
-    const key = `${item.slug}-${item.sizeId}`;
+    const key = `${item.slug}-${item.sizeId}-${item.offerId ?? "standard"}`;
     const current = readItems();
     const existing = current.find((entry) => entry.key === key);
     commitItems(existing ? current.map((entry) => entry.key === key ? { ...entry, quantity: entry.quantity + 1 } : entry) : [...current, { ...item, key, quantity: 1 }]);
+  };
+
+  const addBundle = (bundleItems: Array<Omit<CartItem, "key" | "quantity">>) => {
+    let current = readItems();
+    for (const item of bundleItems) {
+      const key = `${item.slug}-${item.sizeId}-${item.offerId ?? "standard"}`;
+      const existing = current.find((entry) => entry.key === key);
+      current = existing ? current.map((entry) => entry.key === key ? { ...entry, quantity: entry.quantity + 1 } : entry) : [...current, { ...item, key, quantity: 1 }];
+    }
+    commitItems(current);
   };
 
   const updateQuantity = (key: string, quantity: number) => {
@@ -93,6 +105,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       items,
       itemCount: items.reduce((total, item) => total + item.quantity, 0),
       addItem,
+      addBundle,
       updateQuantity,
       removeItem,
       clearCart,

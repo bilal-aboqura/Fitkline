@@ -13,6 +13,7 @@ import {
   findOrderByBostaTrackingNumber,
   updateOrder,
 } from "@/lib/order-store";
+import { sendMetaOrderCancelled } from "@/lib/meta-conversions";
 
 function secureEqual(received: string, expected: string) {
   const left = Buffer.from(received);
@@ -75,13 +76,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true, stale: true });
     }
 
-    await updateOrder(order.reference, {
+    const updated = await updateOrder(order.reference, {
       bosta,
       orderStatus: orderStatusForBostaState(stateCode, order.orderStatus),
       ...(stateCode === 45 && order.paymentMethod === "cod"
         ? { paymentStatus: "paid" as const }
         : {}),
     });
+    if (order.orderStatus !== "cancelled" && updated?.orderStatus === "cancelled") {
+      await sendMetaOrderCancelled(updated);
+    }
     return NextResponse.json({ received: true, matched: true });
   } catch (error) {
     console.error("[POST /api/webhooks/bosta]", error);

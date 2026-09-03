@@ -22,6 +22,7 @@ type SubmittedItem = {
   slug?: unknown;
   sizeId?: unknown;
   quantity?: unknown;
+  offerId?: unknown;
 };
 
 function text(value: unknown) {
@@ -76,6 +77,12 @@ export async function POST(request: Request) {
     }
 
     const content = await getCmsContent();
+    const validOfferIds = new Set<string>();
+    for (const offer of content.offers.filter((candidate) => candidate.active)) {
+      const submittedForOffer = rawItems.filter((item) => text(item.offerId) === offer.id);
+      const isExactBundle = submittedForOffer.length === offer.items.length && offer.items.every((required) => submittedForOffer.some((item) => text(item.slug) === required.slug && text(item.sizeId) === required.sizeId && Number(item.quantity) === required.quantity));
+      if (isExactBundle) validOfferIds.add(offer.id);
+    }
     const requestedMethod = text(body.paymentMethod);
     const paymentMethod: PaymentMethod =
       requestedMethod === "kashier" ? "kashier" : "cod";
@@ -114,12 +121,17 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
+      const offerId = text(rawItem.offerId);
+      const offer = offerId && validOfferIds.has(offerId) ? content.offers.find((candidate) => candidate.id === offerId && candidate.active) : undefined;
+      const matchesOfferItem = offer?.items.find((candidate) => candidate.slug === slug && candidate.sizeId === sizeId && candidate.quantity === quantity);
+      const offerDiscount = matchesOfferItem && offer ? offer.discountPercent : 0;
+      const listAfterOffer = size.price === null ? null : Math.round(size.price * (1 - offerDiscount / 100) * 100) / 100;
       const unitPrice =
-        size.price === null
+        listAfterOffer === null
           ? null
           : saleEligible
-            ? getDiscountedPrice(size.price, paymentMethod)
-            : size.price;
+            ? getDiscountedPrice(listAfterOffer, paymentMethod)
+            : listAfterOffer;
       if (unitPrice === null) hasPendingPrice = true;
       else subtotal += unitPrice * quantity;
       items.push({
@@ -131,7 +143,7 @@ export async function POST(request: Request) {
         unitPrice,
         ...(saleEligible
           ? {
-              discountPercent: getPaymentDiscountPercent(paymentMethod),
+              discountPercent: getPaymentDiscountPercent(paymentMethod) + offerDiscount,
               ...(size.price !== null ? { listUnitPrice: size.price } : {}),
             }
           : {}),

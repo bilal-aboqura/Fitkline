@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
+import { sendMetaOrderCancelled } from "@/lib/meta-conversions";
 import {
   BostaIntegrationError,
   createBostaDelivery,
@@ -53,6 +54,9 @@ export async function POST(request: Request) {
         ? { paymentStatus: "paid" as const }
         : {}),
     });
+    if (order.orderStatus !== "cancelled" && updated?.orderStatus === "cancelled") {
+      await sendMetaOrderCancelled(updated);
+    }
     return NextResponse.json({ data: updated });
   } catch (error) {
     if (error instanceof BostaIntegrationError) {

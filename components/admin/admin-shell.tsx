@@ -9,6 +9,7 @@ const navigation = [
   { href: "/admin/analytics", label: "التحليلات والزوار" },
   { href: "/admin/content", label: "محتوى الموقع" },
   { href: "/admin/products", label: "المنتجات والأسعار" },
+  { href: "/admin/offers", label: "الباقات والعروض" },
   { href: "/admin/shipping", label: "المحافظات والشحن" },
   { href: "/admin/orders", label: "الطلبات" },
   { href: "/admin/settings", label: "الإعدادات والدفع" },

@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
-import { getOrders, updateOrder, type OrderStatus } from "@/lib/order-store";
+import { sendMetaOrderCancelled } from "@/lib/meta-conversions";
+import {
+  findOrder,
+  getOrders,
+  updateOrder,
+  type OrderStatus,
+} from "@/lib/order-store";
 
 const statuses = new Set<OrderStatus>([
   "new",
@@ -58,7 +64,11 @@ export async function PATCH(request: Request) {
       { status: 400 },
     );
   }
-  const order = await updateOrder(body.reference, {
+  const currentOrder = await findOrder(body.reference);
+  if (!currentOrder) {
+    return NextResponse.json({ error: "الطلب غير موجود." }, { status: 404 });
+  }
+  const order = await updateOrder(currentOrder.reference, {
     orderStatus:
       typeof body.orderStatus === "string"
         ? (body.orderStatus as OrderStatus)
@@ -66,5 +76,8 @@ export async function PATCH(request: Request) {
     notes: typeof body.notes === "string" ? body.notes.trim() : undefined,
   });
   if (!order) return NextResponse.json({ error: "الطلب غير موجود." }, { status: 404 });
+  if (currentOrder.orderStatus !== "cancelled" && order.orderStatus === "cancelled") {
+    await sendMetaOrderCancelled(order);
+  }
   return NextResponse.json({ data: order });
 }

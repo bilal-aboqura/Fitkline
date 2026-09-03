@@ -69,7 +69,7 @@ export default async function RootLayout({
             <SiteAnalytics />
             <MetaPixel />
             <a className="skip-link" href="#main-content">تخطّي إلى المحتوى</a>
-            <SiteHeader settings={content.settings} links={content.navigation} />
+        <SiteHeader settings={content.settings} links={content.navigation.some((link) => link.href === "/offers") ? content.navigation : [...content.navigation, { href: "/offers", label: "الباقات والعروض" }]} />
             {children}
             <SiteFooter settings={content.settings} links={content.navigation} />
             <WhatsAppButton
