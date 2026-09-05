@@ -114,26 +114,11 @@ stored Egyptian governorate and city/area against Bosta's current public zoning
 API before creating the delivery, and Bosta remains the final validator of
 coverage.
 
-### Automatic daily pickup
+### Bosta pickup
 
-Vercel calls the protected pickup automation twice around midnight to cover both
-Egypt standard time and daylight-saving time. The handler runs only when the
-local Cairo hour is exactly 00:00 (12:00 AM), so only one call can proceed. It then:
-
-1. Selects every uncollected order whose execution state is `confirmed`.
-2. Stops without creating a pickup when fewer than 3 are available; those
-   orders stay eligible for the following day.
-3. Creates any missing Bosta deliveries and keeps their exact tracking states.
-4. Uses Bosta's first available pickup date, default pickup location/contact,
-   and the selected delivery tracking numbers.
-5. Creates one pickup for all eligible parcels and marks the orders processing.
-6. Downloads the Arabic AWBs, arranges every two labels vertically on one A4
-   sheet, and sends the schedule plus the combined PDF to the configured
-   Telegram destination. An odd final label stays in the top half of its own
-   sheet. Failed Telegram documents are retried on a later automation run.
-
-The schedule is declared in `vercel.json`. Add `CRON_SECRET` to the Production
-environment in Vercel; Vercel sends it as a Bearer token automatically.
+Automatic pickup scheduling is disabled. Create Bosta shipments manually from
+the order actions when needed; the order status and Bosta tracking webhook
+continue to work normally.
 
 ## 5. Telegram order notifications
 

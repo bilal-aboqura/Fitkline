@@ -9,7 +9,6 @@ import {
 import type { BostaStatusKey } from "@/lib/bosta-status";
 import { mylerzStatusLabel } from "@/lib/mylerz-status";
 import type { OrderStatus, StoredOrder } from "@/lib/order-store";
-import type { StoredBostaPickup } from "@/lib/pickup-store";
 
 const statusLabels: Record<OrderStatus, string> = {
   new: "جديد",
@@ -101,45 +100,6 @@ function ShipmentStatus({ order, compact = false }: { order: StoredOrder; compac
   if (order.bosta) return <BostaStatus order={order} compact={compact} />;
   if (order.mylerz) return <MylerzStatus order={order} compact={compact} />;
   return <BostaStatus order={order} compact={compact} />;
-}
-
-function PickupAutomationPanel({
-  orders,
-  pickups,
-}: {
-  orders: StoredOrder[];
-  pickups: StoredBostaPickup[];
-}) {
-  const confirmed = orders.filter(
-    (order) => order.orderStatus === "confirmed" && !order.bosta?.pickup?.id,
-  ).length;
-  return (
-    <section className="admin-panel admin-pickup-automation" aria-label="جدولة استلام بوسطة التلقائية">
-      <div className="admin-panel__header">
-        <h2>جدولة الاستلام التلقائية</h2>
-        <span className={`admin-connection${confirmed >= 3 ? " is-ready" : ""}`}>
-          {confirmed >= 3 ? "جاهز للجدولة" : `${confirmed}/3 طلبات مؤكدة`}
-        </span>
-      </div>
-      <div className="admin-pickup-automation__summary">
-        <div><span>التشغيل اليومي</span><strong dir="ltr">12:00 AM</strong></div>
-        <div><span>الحد الأدنى</span><strong>3 طلبات</strong></div>
-      </div>
-      {pickups.length ? (
-        <div className="admin-pickup-history">
-          {pickups.slice(0, 4).map((pickup) => (
-            <div key={pickup.automationKey}>
-              <span><b>{pickup.scheduledDate ?? pickup.createdAt.slice(0, 10)}</b></span>
-              <span><b>{pickup.parcelCount} شحنات</b><small>{pickup.scheduledTimeSlot ?? "الموعد تحدده بوسطة"}</small></span>
-              <span className={`admin-pickup-run admin-pickup-run--${pickup.status}`}>
-                {pickup.status === "completed" ? "تمت الجدولة" : pickup.status === "skipped" ? "أقل من 3" : pickup.status === "running" ? "جاري التنفيذ" : "تعذر التنفيذ"}
-              </span>
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </section>
-  );
 }
 
 function OrderPrintSheet({ order }: { order: StoredOrder }) {
@@ -254,10 +214,8 @@ function OrderPrintSheet({ order }: { order: StoredOrder }) {
 
 export function AdminOrders({
   initialOrders,
-  initialPickups,
 }: {
   initialOrders: StoredOrder[];
-  initialPickups: StoredBostaPickup[];
 }) {
   const [orders, setOrders] = useState(initialOrders);
   const [query, setQuery] = useState("");
@@ -471,7 +429,6 @@ export function AdminOrders({
 
   return (
     <>
-      <PickupAutomationPanel orders={orders} pickups={initialPickups} />
       <section className="admin-panel admin-orders">
       <div className="admin-table-tools">
         <label>
