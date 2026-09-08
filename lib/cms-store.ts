@@ -2,7 +2,7 @@ import "server-only";
 
 import { unstable_noStore as noStore } from "next/cache";
 import type { Product } from "@/data/products";
-import { validateOffers, type StoreOffer } from "@/data/offers";
+import { normalizeOffers, validateOffers, type StoreOffer } from "@/data/offers";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 
 export type SiteSettings = {
@@ -234,14 +234,18 @@ export async function getCmsContent() {
     .single();
   if (error) throw error;
   const content: unknown = data.content;
-  if (content && typeof content === "object" && !("offers" in content)) {
-    (content as { offers: StoreOffer[] }).offers = [];
+  if (content && typeof content === "object") {
+    const document = content as { offers?: unknown };
+    document.offers = normalizeOffers(document.offers);
   }
   validateCmsContent(content);
   return content;
 }
 
 export async function saveCmsContent(input: unknown) {
+  if (input && typeof input === "object") {
+    (input as { offers?: unknown }).offers = normalizeOffers((input as { offers?: unknown }).offers);
+  }
   validateCmsContent(input);
   const current = await getCmsContent();
   const next: CmsContent = {

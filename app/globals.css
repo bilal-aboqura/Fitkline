@@ -1,3 +1,5 @@
+@import "./offers.css";
+
 :root {
   --fit-bg: #050706;
   --fit-bg-elevated: #0b0e0c;
@@ -4733,6 +4735,7 @@ body {
   }
 }
 
+
 @media (max-width: 420px) {
   .product-directory--redesign .product-card__body {
     padding-inline: 24px;
@@ -6011,19 +6014,19 @@ body {
 }
 
 /* Offer cards keep the same dark, industrial commerce language. */
-.offers-section { padding: 96px 0 128px; background: #080c09; }
-.offers-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 24px; }
-.offer-card { display: flex; min-height: 100%; padding: 28px; flex-direction: column; border: 1px solid rgba(184,190,196,.24); border-radius: 10px; background: linear-gradient(145deg,#111712,#080b09); box-shadow: inset 0 1px rgba(255,255,255,.04); }
-.offer-card__header { display:flex; align-items:center; justify-content:space-between; gap:12px; color:#b8bec4; font-size:.76rem; font-weight:800; letter-spacing:.06em; }
-.offer-card__header b { padding:8px 10px; border:1px solid rgba(183,255,24,.42); color:var(--fit-neon); font-size:.82rem; }
-.offer-card h2 { margin:28px 0 12px; color:var(--fit-white); font-size:clamp(1.6rem,2.5vw,2.25rem); }
-.offer-card > p { min-height:52px; margin:0; color:#b9c4bc; line-height:1.75; }
-.offer-card ul { display:grid; margin:26px 0; padding:0; gap:10px; list-style:none; border-top:1px solid rgba(184,190,196,.18); }
-.offer-card li { display:grid; min-height:70px; padding-top:10px; grid-template-columns:54px 1fr auto; align-items:center; gap:10px; border-bottom:1px solid rgba(184,190,196,.14); color:var(--fit-white); }
-.offer-card li img { width:44px; height:54px; object-fit:contain; }
-.offer-card li strong { color:#c3cec5; font-size:.8rem; font-weight:700; }
-.offer-card .fit-button-primary { width:100%; margin-top:auto; justify-content:center; }
-@media (max-width: 600px) { .offers-section { padding:68px 0 88px; } .offer-card { padding:22px; } }
+.offer-popup { position: fixed; z-index: 80; inset: 0; display: grid; padding: 20px; place-items: center; animation: offer-popup-in 360ms cubic-bezier(.22,1,.36,1); }
+.offer-popup__backdrop { position: absolute; inset: 0; border: 0; background: rgba(2,5,3,.76); backdrop-filter: blur(5px); }
+.offer-popup__panel { position: relative; display: grid; width: min(100%, 860px); max-height: min(720px, calc(100dvh - 40px)); grid-template-columns: minmax(0, 1.15fr) minmax(290px, .85fr); overflow: auto; border: 1px solid rgba(183,255,24,.42); border-radius: 12px; background: #0b100d; box-shadow: 0 12px 36px rgba(0,0,0,.38); }
+.offer-popup__image { position: relative; min-height: 420px; background: #151c16; }
+.offer-popup__image img { object-fit: cover; }
+.offer-popup__content { display: flex; padding: clamp(28px, 4vw, 54px); flex-direction: column; align-items: start; justify-content: center; }
+.offer-popup__content > p { margin: 0; color: var(--fit-neon); font-size: .78rem; font-weight: 900; letter-spacing: .08em; }
+.offer-popup__content h2 { margin: 14px 0; color: var(--fit-white); font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1; }
+.offer-popup__content > span { margin-bottom: 28px; color: #c2cbc3; line-height: 1.75; }
+.offer-popup__close { position: absolute; z-index: 2; top: 12px; left: 12px; display: grid; width: 44px; height: 44px; place-items: center; border: 1px solid rgba(245,247,244,.38); border-radius: 50%; background: rgba(5,7,6,.8); color: var(--fit-white); cursor: pointer; }
+.offer-popup__close span { position: absolute; width: 17px; height: 1px; background: currentColor; transform: rotate(45deg); }.offer-popup__close span:last-child { transform: rotate(-45deg); }
+@keyframes offer-popup-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.cart-item__offer { display: block; margin-top: 5px; color: var(--fit-neon); font-size: .75rem; font-weight: 800; }
 
 /* Desktop product cards behave as concise editorial showcases, not mini detail pages. */
 @media (min-width: 721px) {

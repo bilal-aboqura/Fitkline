@@ -77,6 +77,7 @@ export function CartView() {
             />
             <div className="cart-item__copy">
               <p dir="ltr">{item.name}</p>
+              {item.offerTitle ? <small className="cart-item__offer">ضمن باقة {item.offerTitle}</small> : null}
               <h2>{item.sizeLabel}</h2>
               <CampaignPrice
                 compact

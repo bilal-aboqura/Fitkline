@@ -7,7 +7,9 @@ import { SiteHeader } from "@/components/site/site-header";
 import { WhatsAppButton } from "@/components/site/whatsapp-button";
 import { SiteAnalytics } from "@/components/analytics/site-analytics";
 import { MetaPixel } from "@/components/analytics/meta-pixel";
+import { OfferPopup } from "@/components/commerce/offer-popup";
 import { getCmsContent } from "@/lib/cms-store";
+import { isOfferPublic } from "@/data/offers";
 import { getSaleCampaignStatus } from "@/lib/campaign-store";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
@@ -60,6 +62,7 @@ export default async function RootLayout({
     getCmsContent(),
     getSaleCampaignStatus(),
   ]);
+  const popupOffer = content.offers.filter((offer) => isOfferPublic(offer) && offer.showAsPopup).sort((a, b) => a.priority - b.priority)[0];
 
   return (
     <html lang="ar" dir="rtl">
@@ -69,8 +72,9 @@ export default async function RootLayout({
             <SiteAnalytics />
             <MetaPixel />
             <a className="skip-link" href="#main-content">تخطّي إلى المحتوى</a>
-        <SiteHeader settings={content.settings} links={content.navigation.some((link) => link.href === "/offers") ? content.navigation : [...content.navigation, { href: "/offers", label: "الباقات والعروض" }]} />
+            <SiteHeader settings={content.settings} links={content.navigation.some((link) => link.href === "/offers") ? content.navigation : [...content.navigation, { href: "/offers", label: "الباقات والعروض" }]} />
             {children}
+            <OfferPopup offer={popupOffer} products={content.products} />
             <SiteFooter settings={content.settings} links={content.navigation} />
             <WhatsAppButton
               phoneNumber={content.settings.whatsapp || "+201150301033"}

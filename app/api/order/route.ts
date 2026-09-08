@@ -10,6 +10,7 @@ import {
   getDiscountedPrice,
   getPaymentDiscountPercent,
 } from "@/data/campaign";
+import { getOfferListPrice, isOfferPublic, type StoreOffer } from "@/data/offers";
 import { phoneComparisonKey } from "@/lib/phone";
 import {
   createOrder,
@@ -77,11 +78,11 @@ export async function POST(request: Request) {
     }
 
     const content = await getCmsContent();
-    const validOfferIds = new Set<string>();
-    for (const offer of content.offers.filter((candidate) => candidate.active)) {
+    const validOffers = new Map<string, { offer: StoreOffer; listPrice: number | null }>();
+    for (const offer of content.offers.filter((candidate) => isOfferPublic(candidate))) {
       const submittedForOffer = rawItems.filter((item) => text(item.offerId) === offer.id);
       const isExactBundle = submittedForOffer.length === offer.items.length && offer.items.every((required) => submittedForOffer.some((item) => text(item.slug) === required.slug && text(item.sizeId) === required.sizeId && Number(item.quantity) === required.quantity));
-      if (isExactBundle) validOfferIds.add(offer.id);
+      if (isExactBundle) validOffers.set(offer.id, { offer, listPrice: getOfferListPrice(offer, content.products) });
     }
     const requestedMethod = text(body.paymentMethod);
     const paymentMethod: PaymentMethod =
@@ -122,10 +123,17 @@ export async function POST(request: Request) {
         );
       }
       const offerId = text(rawItem.offerId);
-      const offer = offerId && validOfferIds.has(offerId) ? content.offers.find((candidate) => candidate.id === offerId && candidate.active) : undefined;
-      const matchesOfferItem = offer?.items.find((candidate) => candidate.slug === slug && candidate.sizeId === sizeId && candidate.quantity === quantity);
-      const offerDiscount = matchesOfferItem && offer ? offer.discountPercent : 0;
-      const listAfterOffer = size.price === null ? null : Math.round(size.price * (1 - offerDiscount / 100) * 100) / 100;
+      const offerPricing = offerId ? validOffers.get(offerId) : undefined;
+      const offer = offerPricing?.offer;
+      const offerDiscount = offer ? offer.discountPercent : 0;
+      const packageLinePrice = size.price === null || !offer || offer.offerPrice === null || !offerPricing?.listPrice
+        ? null
+        : Math.round((size.price * quantity / offerPricing.listPrice) * offer.offerPrice * 100) / 100;
+      const listAfterOffer = size.price === null
+        ? null
+        : packageLinePrice !== null
+          ? packageLinePrice / quantity
+          : Math.round(size.price * (1 - offerDiscount / 100) * 100) / 100;
       const unitPrice =
         listAfterOffer === null
           ? null
@@ -141,9 +149,9 @@ export async function POST(request: Request) {
         sizeLabel: size.label,
         quantity,
         unitPrice,
-        ...(saleEligible
+        ...(saleEligible || offer
           ? {
-              discountPercent: getPaymentDiscountPercent(paymentMethod) + offerDiscount,
+              discountPercent: (offer ? Math.round((1 - (listAfterOffer ?? size.price ?? 0) / (size.price || 1)) * 10000) / 100 : 0) + (saleEligible ? getPaymentDiscountPercent(paymentMethod) : 0),
               ...(size.price !== null ? { listUnitPrice: size.price } : {}),
             }
           : {}),
