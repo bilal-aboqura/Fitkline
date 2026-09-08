@@ -2890,3 +2890,76 @@ body:has(.admin-root) .site-footer {
     padding: 18px 20px;
   }
 }
+
+/* Offers editor: compact single-column layout for phone screens. */
+@media (max-width: 620px) {
+  .admin-offers__heading {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .admin-offers__heading .admin-secondary-action,
+  .admin-offer__items-heading .admin-secondary-action {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .admin-offer__top {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 14px 16px;
+  }
+
+  .admin-offer__top > button {
+    align-self: flex-start;
+  }
+
+  .admin-offer__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-offer__media {
+    padding: 16px;
+    border-inline-end: 0;
+    border-bottom: 1px solid #e4e8e5;
+  }
+
+  .admin-offer__preview {
+    min-height: 160px;
+    aspect-ratio: 16 / 9;
+  }
+
+  .admin-offer__preview > div {
+    height: 160px;
+  }
+
+  .admin-offer__editor,
+  .admin-offer__items {
+    padding: 16px;
+  }
+
+  .admin-offer__items-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-offer__item {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .admin-offer__item select,
+  .admin-offer__item input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .admin-offer__item button {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .admin-offer__price-summary {
+    gap: 6px 10px;
+  }
+}
