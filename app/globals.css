@@ -6447,3 +6447,27 @@ body {
     padding-bottom: 80px;
   }
 }
+
+/* Mobile offer popup: stack the creative and copy after the desktop popup
+   rules so the image cannot remain cropped in a side column. */
+@media (max-width: 700px) {
+  .offer-popup__panel {
+    width: min(100%, 520px);
+    grid-template-columns: minmax(0, 1fr);
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .offer-popup__image {
+    width: 100%;
+    min-height: min(46dvh, 340px);
+    max-height: 46dvh;
+  }
+  .offer-popup__image--uploaded img {
+    object-fit: contain;
+    padding: 0;
+  }
+  .offer-popup__image--product img {
+    object-fit: contain;
+    padding: 24px;
+  }
+}
