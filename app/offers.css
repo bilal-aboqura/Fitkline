@@ -27,8 +27,8 @@
 .home-offer__visual:hover .bundle-art__composition img { transform: translateY(-4px); }
 .bundle-contents { margin-top: 24px; }
 .bundle-contents > p { margin: 0 0 10px; font-size: .875rem; font-weight: 700; color: var(--fit-silver); }
-.bundle-contents ul { list-style: none; display: flex; flex-wrap: wrap; gap: 10px 20px; padding: 0; margin: 0; }
-.bundle-contents li { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 185px; }
+.bundle-contents ul { list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 0; margin: 0; }
+.bundle-contents li { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .bundle-contents img { width: 44px; height: 58px; object-fit: contain; flex-shrink: 0; }
 .bundle-contents li > span { display: grid; gap: 4px; min-width: 0; }
 .bundle-contents bdi { font-size: .875rem; font-weight: 800; overflow-wrap: anywhere; }
@@ -57,7 +57,6 @@
 .offers-section { padding-block: 0 88px; }
 .offer-card { scroll-margin-top: calc(var(--fit-header-height) + 24px); }
 .offer-card__content { padding-block: 40px; }
-.offer-card__content .bundle-contents ul { display: grid; }
 .offer-card__content .bundle-contents li { padding-block: 8px; border-bottom: 1px solid var(--fit-border); }
 .offer-card__content .bundle-contents img { width: 54px; height: 68px; }
 .bundle-confidence { margin: 14px 0 0; color: var(--fit-silver); font-size: .875rem; line-height: 1.7; }
@@ -82,7 +81,10 @@
   .bundle-art__mobile { display: block; }
   .home-offer__body h3, .offer-card__content h2 { font-size: 1.9rem; }
   .bundle-contents { margin-top: 20px; }
-  .bundle-contents li { flex-basis: 100%; }
+  .bundle-contents ul { gap: 8px; }
+  .bundle-contents li { gap: 6px; }
+  .bundle-contents img { width: 38px; height: 52px; }
+  .bundle-contents bdi, .bundle-contents small, .bundle-contents__quantity { font-size: .78rem; }
   .bundle-price__amount bdi { font-size: clamp(2.5rem, 11vw, 3.5rem); }
   .home-offers__grid, .offers-grid { gap: 24px; }
   .offers-intro { padding-block: calc(var(--fit-header-height) + 28px) 28px; }

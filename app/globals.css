@@ -6017,8 +6017,11 @@ body {
 .offer-popup { position: fixed; z-index: 80; inset: 0; display: grid; padding: 20px; place-items: center; animation: offer-popup-in 360ms cubic-bezier(.22,1,.36,1); }
 .offer-popup__backdrop { position: absolute; inset: 0; border: 0; background: rgba(2,5,3,.76); backdrop-filter: blur(5px); }
 .offer-popup__panel { position: relative; display: grid; width: min(100%, 860px); max-height: min(720px, calc(100dvh - 40px)); grid-template-columns: minmax(0, 1.15fr) minmax(290px, .85fr); overflow: auto; border: 1px solid rgba(183,255,24,.42); border-radius: 12px; background: #0b100d; box-shadow: 0 12px 36px rgba(0,0,0,.38); }
-.offer-popup__image { position: relative; min-height: 420px; background: #151c16; }
-.offer-popup__image img { object-fit: cover; }
+.offer-popup__image { position: relative; min-height: 420px; overflow: hidden; background: #151c16; }
+.offer-popup__image::after { position: absolute; inset: 0; pointer-events: none; content: ""; background: linear-gradient(135deg, rgba(183,255,24,.08), transparent 42%, rgba(0,0,0,.2)); }
+.offer-popup__image img { object-fit: cover; object-position: center; }
+.offer-popup__image--product { background: radial-gradient(circle at 50% 42%, #263629 0%, #151c16 58%, #0b100d 100%); }
+.offer-popup__image--product img { object-fit: contain; padding: clamp(24px, 5vw, 56px); }
 .offer-popup__content { display: flex; padding: clamp(28px, 4vw, 54px); flex-direction: column; align-items: start; justify-content: center; }
 .offer-popup__content > p { margin: 0; color: var(--fit-neon); font-size: .78rem; font-weight: 900; letter-spacing: .08em; }
 .offer-popup__content h2 { margin: 14px 0; color: var(--fit-white); font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1; }
