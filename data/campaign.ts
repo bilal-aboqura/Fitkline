@@ -1,12 +1,12 @@
 export const saleCampaign = {
   id: "first-100-payment-discount",
-  active: true,
-  discountPercent: 10,
-  electronicDiscountPercent: 20,
+  active: false,
+  discountPercent: 0,
+  electronicDiscountPercent: 0,
   customerLimit: 100,
   startsAt: "2026-08-13T00:00:00+03:00",
-  title: "خصم 10% عند الاستلام و20% للدفع الإلكتروني",
-  message: "اختار طريقة الدفع المناسبة وخد خصمك — لأول 100 عميل",
+  title: "",
+  message: "",
 } as const;
 
 export type CampaignPaymentMethod = "cod" | "kashier";
@@ -20,6 +20,8 @@ export type SaleCampaignStatus = {
 };
 
 export function getPaymentDiscountPercent(method: CampaignPaymentMethod) {
+  if (!saleCampaign.active) return 0;
+
   return method === "kashier"
     ? saleCampaign.electronicDiscountPercent
     : saleCampaign.discountPercent;

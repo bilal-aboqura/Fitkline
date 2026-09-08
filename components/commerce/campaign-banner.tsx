@@ -6,6 +6,8 @@ import { useCampaign } from "@/components/commerce/campaign-provider";
 
 export function CampaignBanner() {
   const status = useCampaign();
+  if (!saleCampaign.active) return null;
+
   const available = isSaleAvailable(status);
 
   return (
