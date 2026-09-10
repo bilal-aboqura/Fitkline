@@ -226,6 +226,7 @@ export function AdminOrders({
   const [bostaReference, setBostaReference] = useState<string | null>(null);
   const [mylerzReference, setMylerzReference] = useState<string | null>(null);
   const [importingBosta, setImportingBosta] = useState(false);
+  const [syncingMylerz, setSyncingMylerz] = useState(false);
   const [printOrder, setPrintOrder] = useState<StoredOrder | null>(null);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>(() =>
     Object.fromEntries(initialOrders.map((order) => [order.reference, order.notes ?? ""])),
@@ -427,6 +428,34 @@ export function AdminOrders({
     }
   }
 
+  async function syncAllMylerzShipments() {
+    setSyncingMylerz(true);
+    setMessage("جاري مزامنة كل شحنات Mylerz…");
+    try {
+      const response = await fetch("/api/admin/orders/mylerz/sync-all", { method: "POST" });
+      const result = (await response.json()) as {
+        data?: { found: number; refreshed: number; failedReferences: string[]; orders: StoredOrder[] };
+        error?: string;
+      };
+      if (!response.ok || !result.data) {
+        setMessage(result.error ?? "تعذر مزامنة شحنات Mylerz.");
+        return;
+      }
+      const changed = new Map(result.data.orders.map((order) => [order.reference, order]));
+      setOrders((current) => current.map((order) => changed.get(order.reference) ?? order));
+      setMessage(
+        result.data.found === 0
+          ? "لا توجد شحنات Mylerz لمزامنتها."
+          : `تم تحديث ${result.data.refreshed} شحنة Mylerz من أصل ${result.data.found}` +
+              (result.data.failedReferences.length ? ` — تعذر تحديث ${result.data.failedReferences.length} شحنة.` : "."),
+      );
+    } catch {
+      setMessage("تعذر الاتصال بالخادم. حاول مرة أخرى.");
+    } finally {
+      setSyncingMylerz(false);
+    }
+  }
+
   return (
     <>
       <section className="admin-panel admin-orders">
@@ -446,6 +475,14 @@ export function AdminOrders({
           onClick={() => void importBostaOrders()}
         >
           {importingBosta ? "جاري السحب…" : "مزامنة كل أوردرات بوسطة"}
+        </button>
+        <button
+          className="admin-secondary-action admin-mylerz-sync-all-action"
+          type="button"
+          disabled={syncingMylerz}
+          onClick={() => void syncAllMylerzShipments()}
+        >
+          {syncingMylerz ? "جاري مزامنة Mylerz…" : "مزامنة كل شحنات Mylerz"}
         </button>
         <label>
           <span className="sr-only">فلترة حسب حالة بوسطة</span>
