@@ -136,6 +136,10 @@ export type Database = {
         };
         Update: {
           updated_at?: string;
+          items?: unknown;
+          subtotal?: number | null;
+          shipping_amount?: number | null;
+          total?: number | null;
           order_status?: string;
           payment_status?: string;
           kashier_session_id?: string | null;

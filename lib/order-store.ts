@@ -193,6 +193,10 @@ export async function updateOrder(
     Pick<
       StoredOrder,
       | "orderStatus"
+      | "items"
+      | "subtotal"
+      | "shippingAmount"
+      | "total"
       | "paymentStatus"
       | "kashierSessionId"
       | "kashierPaymentId"
@@ -207,6 +211,11 @@ export async function updateOrder(
   };
   if (changes.orderStatus !== undefined)
     updates.order_status = changes.orderStatus;
+  if (changes.items !== undefined) updates.items = changes.items;
+  if (changes.subtotal !== undefined) updates.subtotal = changes.subtotal;
+  if (changes.shippingAmount !== undefined)
+    updates.shipping_amount = changes.shippingAmount;
+  if (changes.total !== undefined) updates.total = changes.total;
   if (changes.paymentStatus !== undefined)
     updates.payment_status = changes.paymentStatus;
   if (changes.kashierSessionId !== undefined)

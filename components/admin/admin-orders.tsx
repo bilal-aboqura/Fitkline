@@ -9,6 +9,7 @@ import {
 import type { BostaStatusKey } from "@/lib/bosta-status";
 import { mylerzStatusLabel } from "@/lib/mylerz-status";
 import type { OrderStatus, StoredOrder } from "@/lib/order-store";
+import type { Product } from "@/data/products";
 
 const statusLabels: Record<OrderStatus, string> = {
   new: "جديد",
@@ -53,6 +54,33 @@ function getOrderDiscount(order: StoredOrder) {
   return listSubtotal === null
     ? null
     : Math.max(0, Math.round((listSubtotal - order.subtotal) * 100) / 100);
+}
+
+type OrderItemDraft = StoredOrder["items"][number];
+
+function cloneItems(items: StoredOrder["items"]): OrderItemDraft[] {
+  return items.map((item) => ({ ...item }));
+}
+
+function orderWhatsAppLink(order: StoredOrder) {
+  const phone = order.customer.phone.replace(/\D/g, "");
+  const recipient = phone.startsWith("0") ? `2${phone}` : phone;
+  const products = order.items
+    .map((item) => `• ${item.name} ${item.sizeLabel} × ${item.quantity} — ${money(item.unitPrice === null ? null : item.unitPrice * item.quantity)}`)
+    .join("\n");
+  const text = [
+    `🛒 *طلب جديد ${order.reference}*`,
+    `👤 *العميل:* ${order.customer.name}`,
+    `📞 *التليفون:* ${order.customer.phone}`,
+    ...(order.customer.alternatePhone ? [`📞 *تليفون إضافي:* ${order.customer.alternatePhone}`] : []),
+    `📍 *العنوان:* ${order.customer.governorate}، ${order.customer.city} — ${order.customer.address}`,
+    `💳 *الدفع:* ${order.paymentMethod === "kashier" ? "دفع إلكتروني" : "الدفع عند الاستلام"}`,
+    "*المنتجات:*",
+    products,
+    `🚚 *الشحن:* ${money(order.shippingAmount)}`,
+    `💰 *الإجمالي:* ${money(order.total)}`,
+  ].join("\n");
+  return `https://wa.me/${recipient}?text=${encodeURIComponent(text)}`;
 }
 
 function BostaStatus({ order, compact = false }: { order: StoredOrder; compact?: boolean }) {
@@ -228,6 +256,10 @@ export function AdminOrders({
   const [importingBosta, setImportingBosta] = useState(false);
   const [syncingMylerz, setSyncingMylerz] = useState(false);
   const [printOrder, setPrintOrder] = useState<StoredOrder | null>(null);
+  const [catalog, setCatalog] = useState<Product[] | null>(null);
+  const [editingReference, setEditingReference] = useState<string | null>(null);
+  const [itemDrafts, setItemDrafts] = useState<Record<string, OrderItemDraft[]>>({});
+  const [shippingDrafts, setShippingDrafts] = useState<Record<string, string>>({});
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>(() =>
     Object.fromEntries(initialOrders.map((order) => [order.reference, order.notes ?? ""])),
   );
@@ -283,7 +315,12 @@ export function AdminOrders({
 
   async function patchOrder(
     reference: string,
-    changes: { orderStatus?: OrderStatus; notes?: string },
+    changes: {
+      orderStatus?: OrderStatus;
+      notes?: string;
+      items?: StoredOrder["items"];
+      shippingAmount?: number;
+    },
   ) {
     setSavingReference(reference);
     setMessage("جاري حفظ التغييرات…");
@@ -311,11 +348,100 @@ export function AdminOrders({
         [reference]: result.data?.notes ?? "",
       }));
       setMessage(`تم حفظ التغييرات في ${reference}.`);
+      if (changes.items || changes.shippingAmount !== undefined) {
+        setEditingReference(null);
+      }
     } catch {
       setMessage("تعذر الاتصال بالخادم. حاول مرة أخرى.");
     } finally {
       setSavingReference(null);
     }
+  }
+
+  async function openOrderEditor(order: StoredOrder) {
+    setItemDrafts((current) => ({ ...current, [order.reference]: cloneItems(order.items) }));
+    setShippingDrafts((current) => ({ ...current, [order.reference]: String(order.shippingAmount ?? "") }));
+    setEditingReference(order.reference);
+    if (catalog) return;
+    setMessage("جاري تحميل كتالوج المنتجات…");
+    try {
+      const response = await fetch("/api/admin/products");
+      const result = (await response.json()) as { data?: Product[]; error?: string };
+      if (!response.ok || !result.data) {
+        setMessage(result.error ?? "تعذر تحميل كتالوج المنتجات.");
+        return;
+      }
+      setCatalog(result.data);
+      setMessage("");
+    } catch {
+      setMessage("تعذر الاتصال بالخادم. حاول مرة أخرى.");
+    }
+  }
+
+  function updateItemDraft(
+    reference: string,
+    index: number,
+    changes: Partial<OrderItemDraft>,
+  ) {
+    setItemDrafts((current) => ({
+      ...current,
+      [reference]: (current[reference] ?? []).map((item, itemIndex) =>
+        itemIndex === index ? { ...item, ...changes } : item,
+      ),
+    }));
+  }
+
+  function removeItemDraft(reference: string, index: number) {
+    setItemDrafts((current) => ({
+      ...current,
+      [reference]: (current[reference] ?? []).filter((_, itemIndex) => itemIndex !== index),
+    }));
+  }
+
+  function addCatalogItem(reference: string, value: string) {
+    const [slug, sizeId] = value.split(":") as [string, "4kg" | "20kg"];
+    const product = catalog?.find((candidate) => candidate.slug === slug);
+    const size = product?.sizes.find((candidate) => candidate.id === sizeId);
+    if (!product || !size) return;
+    setItemDrafts((current) => {
+      const items = current[reference] ?? [];
+      const existingIndex = items.findIndex((item) => item.slug === slug && item.sizeId === sizeId);
+      if (existingIndex >= 0) {
+        return {
+          ...current,
+          [reference]: items.map((item, index) => index === existingIndex
+            ? { ...item, quantity: item.quantity + 1 }
+            : item),
+        };
+      }
+      return {
+        ...current,
+        [reference]: [...items, {
+          slug: product.slug,
+          name: product.name,
+          sizeId,
+          sizeLabel: size.label,
+          quantity: 1,
+          unitPrice: size.price,
+          ...(size.price !== null ? { listUnitPrice: size.price } : {}),
+        }],
+      };
+    });
+  }
+
+  function saveOrderEditor(order: StoredOrder) {
+    const items = itemDrafts[order.reference] ?? [];
+    const shippingText = shippingDrafts[order.reference] ?? "";
+    const shippingAmount = Number(shippingText);
+    if (!items.length) {
+      setMessage("أضف منتجًا واحدًا على الأقل قبل الحفظ.");
+      return;
+    }
+    if (!shippingText.trim() || !Number.isFinite(shippingAmount) || shippingAmount < 0) {
+      setMessage("أدخل سعر شحن يدوي صحيح.");
+      return;
+    }
+    void patchOrder(order.reference, { items, shippingAmount });
   }
 
   async function runBostaAction(
@@ -559,26 +685,69 @@ export function AdminOrders({
                   </dl>
                 </section>
                 <section>
-                  <h3>المنتجات والحساب</h3>
-                  <ul>
-                    {order.items.map((item) => (
-                      <li key={`${item.slug}-${item.sizeId}`}>
-                        <span dir="ltr">{item.name}</span>
-                        <span>{item.sizeLabel} × {item.quantity}</span>
-                        <span>{money(item.unitPrice === null ? null : item.unitPrice * item.quantity)}</span>
-                        {item.discountPercent ? <small>خصم {item.discountPercent}%</small> : null}
-                      </li>
-                    ))}
-                  </ul>
-                  <dl className="admin-order-detail__totals">
-                    <div><dt>قبل الخصم</dt><dd>{money(getOrderListSubtotal(order))}</dd></div>
-                    {getOrderDiscount(order) ? (
-                      <div><dt>الخصم</dt><dd>− {money(getOrderDiscount(order))}</dd></div>
-                    ) : null}
-                    <div><dt>بعد الخصم</dt><dd>{money(order.subtotal)}</dd></div>
-                    <div><dt>الشحن</dt><dd>{money(order.shippingAmount)}</dd></div>
-                    <div><dt>الإجمالي</dt><dd>{money(order.total)}</dd></div>
-                  </dl>
+                  <div className="admin-order-products__heading">
+                    <h3>المنتجات والحساب</h3>
+                    <button
+                      className="admin-secondary-action admin-order-edit-trigger"
+                      type="button"
+                      onClick={() => void openOrderEditor(order)}
+                    >
+                      تعديل الطلب
+                    </button>
+                  </div>
+                  {editingReference === order.reference ? (
+                    <div className="admin-order-editor">
+                      <p>عدّل الكميات والأسعار، أضف من الكتالوج أو احذف منتجات. يُعاد حساب الإجمالي عند الحفظ.</p>
+                      <div className="admin-order-editor__items">
+                        {(itemDrafts[order.reference] ?? []).map((item, index) => (
+                          <div className="admin-order-editor__item" key={`${item.slug}-${item.sizeId}-${index}`}>
+                            <strong dir="ltr">{item.name} <small>{item.sizeLabel}</small></strong>
+                            <label><span>الكمية</span><input type="number" min="1" step="1" value={item.quantity} onChange={(event) => updateItemDraft(order.reference, index, { quantity: Math.max(1, Math.floor(Number(event.target.value) || 1)) })} /></label>
+                            <label><span>سعر الوحدة</span><input type="number" min="0" step="0.01" value={item.unitPrice ?? ""} placeholder="غير محدد" onChange={(event) => updateItemDraft(order.reference, index, { unitPrice: event.target.value === "" ? null : Number(event.target.value), listUnitPrice: event.target.value === "" ? undefined : Number(event.target.value), discountPercent: undefined })} /></label>
+                            <button className="admin-text-action admin-text-action--danger" type="button" onClick={() => removeItemDraft(order.reference, index)}>حذف</button>
+                          </div>
+                        ))}
+                      </div>
+                      <label className="admin-order-editor__add">
+                        <span>إضافة منتج</span>
+                        <select defaultValue="" disabled={!catalog} onChange={(event) => { addCatalogItem(order.reference, event.target.value); event.currentTarget.value = ""; }}>
+                          <option value="" disabled>{catalog ? "اختر منتجًا وحجمًا" : "جاري تحميل الكتالوج…"}</option>
+                          {catalog?.flatMap((product) => product.active ? product.sizes.filter((size) => size.active).map((size) => (
+                            <option key={`${product.slug}:${size.id}`} value={`${product.slug}:${size.id}`}>
+                              {product.name} — {size.label}{size.price === null ? " (السعر غير محدد)" : ` — ${money(size.price)}`}
+                            </option>
+                          )) : [])}
+                        </select>
+                      </label>
+                      <label className="admin-order-editor__shipping"><span>سعر الشحن اليدوي (ج.م)</span><input type="number" min="0" step="0.01" inputMode="decimal" value={shippingDrafts[order.reference] ?? ""} onChange={(event) => setShippingDrafts((current) => ({ ...current, [order.reference]: event.target.value }))} /></label>
+                      <div className="admin-order-editor__actions">
+                        <button className="admin-primary-action" type="button" disabled={savingReference === order.reference} onClick={() => saveOrderEditor(order)}>{savingReference === order.reference ? "جاري الحفظ…" : "حفظ الطلب وإعادة الحساب"}</button>
+                        <button className="admin-secondary-action" type="button" disabled={savingReference === order.reference} onClick={() => setEditingReference(null)}>إلغاء</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <ul>
+                        {order.items.map((item) => (
+                          <li key={`${item.slug}-${item.sizeId}`}>
+                            <span dir="ltr">{item.name}</span>
+                            <span>{item.sizeLabel} × {item.quantity}</span>
+                            <span>{money(item.unitPrice === null ? null : item.unitPrice * item.quantity)}</span>
+                            {item.discountPercent ? <small>خصم {item.discountPercent}%</small> : null}
+                          </li>
+                        ))}
+                      </ul>
+                      <dl className="admin-order-detail__totals">
+                        <div><dt>قبل الخصم</dt><dd>{money(getOrderListSubtotal(order))}</dd></div>
+                        {getOrderDiscount(order) ? (
+                          <div><dt>الخصم</dt><dd>− {money(getOrderDiscount(order))}</dd></div>
+                        ) : null}
+                        <div><dt>بعد الخصم</dt><dd>{money(order.subtotal)}</dd></div>
+                        <div><dt>الشحن</dt><dd>{money(order.shippingAmount)}</dd></div>
+                        <div><dt>الإجمالي</dt><dd>{money(order.total)}</dd></div>
+                      </dl>
+                    </>
+                  )}
                 </section>
                 <div className="admin-order-actions">
                   <section className="admin-order-bosta" aria-label="شحن بوسطة">
@@ -733,6 +902,14 @@ export function AdminOrders({
                   >
                     طباعة الطلب
                   </button>
+                  <a
+                    className="admin-secondary-action admin-whatsapp-action"
+                    href={orderWhatsAppLink(order)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    مراسلة العميل على واتساب
+                  </a>
                 </div>
               </div>
             </details>
