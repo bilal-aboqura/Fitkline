@@ -16,6 +16,7 @@ export type CartItem = {
   readonly sizeId: ProductSizeId;
   readonly sizeLabel: string;
   readonly unitPrice?: number | null;
+  readonly listUnitPrice?: number | null;
   quantity: number;
   readonly image: string;
   readonly offerId?: string;

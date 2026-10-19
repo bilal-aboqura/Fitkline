@@ -2812,6 +2812,10 @@ textarea:focus-visible {
 }
 
 .checkout-customer-status p { margin: 0; }
+.campaign-price--product-discount { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; }
+.campaign-price--product-discount del { color: #bfc8c1; font-size: 0.82em; }
+.campaign-price--product-discount small { color: var(--fit-neon); font-size: 0.75rem; }
+.order-review__original { display: block; color: #bfc8c1; font-size: 0.8rem; }
 .checkout-customer-status strong { display: block; margin-block-end: 6px; }
 .checkout-customer-status--member { border-color: #b7ff18; }
 .checkout-customer-status--member strong { color: #b7ff18; }

@@ -12,7 +12,8 @@
     "db:migrate:mylerz": "node scripts/migrate-mylerz.mjs",
     "db:migrate:analytics": "node scripts/migrate-analytics.mjs",
     "db:migrate:cod": "node scripts/migrate-cod-shipping.mjs",
-    "test:checkout": "node --test --experimental-strip-types --import ./scripts/test-typescript-loader.mjs scripts/checkout-payment.test.ts"
+    "test:checkout": "node --test --experimental-strip-types --import ./scripts/test-typescript-loader.mjs scripts/checkout-payment.test.ts",
+    "test:pricing": "node --test --experimental-strip-types --import ./scripts/test-typescript-loader.mjs scripts/product-discounts.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.111.0",

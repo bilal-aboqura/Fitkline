@@ -2,6 +2,7 @@ import "server-only";
 
 import { unstable_noStore as noStore } from "next/cache";
 import type { Product } from "@/data/products";
+import { validateProductDiscount } from "@/data/products";
 import { normalizeOffers, validateOffers, type StoreOffer } from "@/data/offers";
 import { getSupabaseServerClient } from "@/lib/supabase-server";
 
@@ -213,6 +214,7 @@ export function validateCmsContent(value: unknown): asserts value is CmsContent 
       throw new Error(`${product.name} needs at least one size`);
     }
     for (const size of product.sizes) {
+      validateProductDiscount(size);
       if (!allowedSizeIds.has(size.id)) {
         throw new Error("Only 4kg and 20kg sizes are supported");
       }

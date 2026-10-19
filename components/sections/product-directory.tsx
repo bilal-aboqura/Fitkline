@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { getActiveProductVariants, type Product } from "@/data/products";
+import { getActiveProductVariants, getProductPrice, type Product } from "@/data/products";
 import { CampaignBadge } from "@/components/commerce/campaign-badge";
 import { CampaignPrice } from "@/components/commerce/campaign-price";
 import type { HomeContent } from "@/lib/cms-store";
@@ -76,7 +76,8 @@ export function ProductDirectory({
                   <span>السعر</span>
                   <CampaignPrice
                     compact
-                    price={size.price}
+                    price={getProductPrice(size)}
+                    originalPrice={size.price}
                     pendingLabel={product.priceLabel}
                   />
                 </div>

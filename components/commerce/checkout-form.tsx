@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Product } from "@/data/products";
+import type { StoreOffer } from "@/data/offers";
+import { getCartSubtotal, repriceCartItems } from "@/lib/cart-pricing";
 import Link from "next/link";
 import {
   setMetaAdvancedMatching,
@@ -9,7 +12,6 @@ import {
 import { useCart } from "@/components/commerce/cart-provider";
 import { useCampaign } from "@/components/commerce/campaign-provider";
 import {
-  getDiscountAmount,
   getDiscountedPrice,
   getPaymentDiscountPercent,
   isSaleAvailable,
@@ -29,11 +31,16 @@ function money(value: number) {
 export function CheckoutForm({
   paymentOptions,
   shippingLocations,
+  products,
+  offers,
 }: {
   paymentOptions: { cod: boolean; kashier: boolean };
   shippingLocations: ShippingGovernorate[];
+  products: Product[];
+  offers: StoreOffer[];
 }) {
-  const { items, clearCart } = useCart();
+  const { items: savedItems, clearCart } = useCart();
+  const items = useMemo(() => repriceCartItems(savedItems, products, offers), [savedItems, products, offers]);
   const campaignStatus = useCampaign();
   const saleAvailable = isSaleAvailable(campaignStatus);
   const [submitted, setSubmitted] = useState(false);
@@ -65,23 +72,13 @@ export function CheckoutForm({
   const hasPendingPrice = items.some(
     (item) => typeof item.unitPrice !== "number",
   );
-  const listSubtotal = hasPendingPrice
-    ? null
-    : items.reduce(
-        (total, item) => total + (item.unitPrice ?? 0) * item.quantity,
-        0,
-      );
+  const listSubtotal = getCartSubtotal(items);
   const discountFor = (method: "cod" | "kashier") =>
     listSubtotal === null || !saleAvailable
       ? 0
-      : items.reduce(
-          (total, item) =>
-            total +
-            (typeof item.unitPrice === "number"
-              ? getDiscountAmount(item.unitPrice, method) * item.quantity
-              : 0),
-          0,
-        );
+      : listSubtotal - getCartSubtotal(items, (price) => getDiscountedPrice(price, method))!;
+  const originalSubtotal = hasPendingPrice ? null : items.reduce((sum, item) => sum + (item.listUnitPrice ?? item.unitPrice ?? 0) * item.quantity, 0);
+  const productDiscount = originalSubtotal !== null && listSubtotal !== null ? Math.max(0, originalSubtotal - listSubtotal) : 0;
   const kashierDiscount = discountFor("kashier");
   const kashierSubtotal =
     listSubtotal === null ? null : listSubtotal - kashierDiscount;
@@ -229,6 +226,7 @@ export function CheckoutForm({
           address: formData.get("address"),
           items,
           paymentMethod: effectivePaymentMethod,
+          expectedSubtotal: subtotal,
         }),
       });
       const result = (await response.json()) as {
@@ -409,6 +407,7 @@ export function CheckoutForm({
                 </small>
               </span>
               <span>
+                {typeof item.listUnitPrice === "number" && typeof item.unitPrice === "number" && item.listUnitPrice > item.unitPrice ? <del className="order-review__original">{money(item.listUnitPrice * item.quantity)}</del> : null}
                 {typeof item.unitPrice === "number"
                   ? money(
                       (saleAvailable
@@ -432,11 +431,12 @@ export function CheckoutForm({
 
         <dl className="checkout-totals" aria-live="polite">
           <div>
-            <dt>إجمالي المنتجات قبل الخصم</dt>
+            <dt>إجمالي المنتجات قبل الخصومات</dt>
             <dd>
-              {listSubtotal === null ? "قيد التأكيد" : money(listSubtotal)}
+              {originalSubtotal === null ? "قيد التأكيد" : money(originalSubtotal)}
             </dd>
           </div>
+          {productDiscount > 0 ? <div className="checkout-totals__discount"><dt>خصومات المنتجات والباقات</dt><dd>− {money(productDiscount)}</dd></div> : null}
           {saleAvailable ? (
             <div className="checkout-totals__discount">
               <dt>

@@ -1325,6 +1325,19 @@ body:has(.admin-root) .site-footer {
   margin: 0 0 4px;
 }
 
+.admin-product-discount-preview {
+  display: grid;
+  gap: 8px;
+  padding-block: 14px;
+  border-block: 1px solid #d9dfda;
+  color: #17462b;
+}
+.admin-product-discount-preview > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; }
+.admin-product-discount-preview del { color: #657168; font-size: 0.85rem; }
+.admin-product-discount-preview strong { font-size: 1.15rem; }
+.admin-size-grid label > small,
+.admin-product-discount-preview small { color: #4d5b52; font-size: 0.78rem; line-height: 1.8; }
+
 .admin-upload input {
   min-height: 44px;
   padding: 7px;

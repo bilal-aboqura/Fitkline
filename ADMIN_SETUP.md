@@ -133,6 +133,19 @@ the notification error is recorded in the server logs.
 
 ## 6. Storage
 
+### Product discounts
+
+In `/admin/products`, set **نسبة خصم المنتج (%)** for each size separately.
+The preview shows the original and discounted price; **حفظ المنتجات** publishes
+the change. Set the percentage to `0` to remove it. Discounts require a positive
+base price and accept values from 0 to 100, including decimals.
+
+Individual product discounts apply to standalone purchases. Bundles keep their
+own prices; an eligible payment-method campaign applies afterward. Saved carts
+are repriced from the current catalog, and checkout confirms the displayed
+subtotal before creating an order. Existing products need no migration or price
+changes. Pricing regression tests: `npm run test:pricing`.
+
 ### COD shipping and Fitkline customers
 
 Run `npm run db:migrate:cod` before deploying this checkout version. It adds

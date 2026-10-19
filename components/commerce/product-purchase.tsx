@@ -13,6 +13,7 @@ import {
 } from "@/data/campaign";
 import {
   formatProductPrice,
+  getProductPrice,
   getProductVariantHref,
   type Product,
   type ProductSize,
@@ -30,13 +31,14 @@ export function ProductPurchase({ product, size }: ProductPurchaseProps) {
   const siblingSizes = product.sizes.filter((candidate) => candidate.active);
   const alternateSize = siblingSizes.find((candidate) => candidate.id !== size.id);
   const hasPrice = typeof size.price === "number";
+  const productPrice = getProductPrice(size);
   const saleAvailable = isSaleAvailable(campaignStatus);
-  const effectivePrice = hasPrice && saleAvailable
-    ? getDiscountedPrice(size.price)
-    : size.price;
-  const mobilePrice = hasPrice && saleAvailable
-    ? getDiscountedPrice(size.price, "kashier")
-    : size.price;
+  const effectivePrice = productPrice !== null && saleAvailable
+    ? getDiscountedPrice(productPrice)
+    : productPrice;
+  const mobilePrice = productPrice !== null && saleAvailable
+    ? getDiscountedPrice(productPrice, "kashier")
+    : productPrice;
   const isOutOfStock = size.stock === 0;
 
   useEffect(() => {
@@ -57,7 +59,8 @@ export function ProductPurchase({ product, size }: ProductPurchaseProps) {
       name: product.name,
       sizeId: size.id,
       sizeLabel: size.label,
-      unitPrice: size.price,
+      unitPrice: productPrice,
+      listUnitPrice: size.price,
       image: product.sizeImages[size.id] ?? product.image,
     });
     trackMetaEvent("AddToCart", {
@@ -81,7 +84,8 @@ export function ProductPurchase({ product, size }: ProductPurchaseProps) {
       <section className="purchase-panel__price" aria-labelledby="purchase-price-title">
         <h2 id="purchase-price-title">السعر</h2>
         <CampaignPrice
-          price={size.price}
+          price={productPrice}
+          originalPrice={size.price}
           pendingLabel={product.priceLabel}
           presentation="configurator"
         />

@@ -22,6 +22,8 @@ export default async function CheckoutPage() {
           kashier: content.settings.kashierEnabled && kashier.ready,
         }}
         shippingLocations={shippingLocations}
+        products={content.products}
+        offers={content.offers}
       /></div></section>
     </main>
   );

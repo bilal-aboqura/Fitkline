@@ -10,6 +10,7 @@ import type { BostaStatusKey } from "@/lib/bosta-status";
 import { mylerzStatusLabel } from "@/lib/mylerz-status";
 import type { OrderStatus, StoredOrder } from "@/lib/order-store";
 import type { Product } from "@/data/products";
+import { getProductPrice } from "@/data/products";
 import { getAmountDueOnDelivery, getOnlinePaymentAmount, getOrderPaymentLabel } from "@/lib/order-payment";
 
 const statusLabels: Record<OrderStatus, string> = {
@@ -421,7 +422,8 @@ export function AdminOrders({
           sizeId,
           sizeLabel: size.label,
           quantity: 1,
-          unitPrice: size.price,
+          unitPrice: getProductPrice(size),
+          discountPercent: size.discountPercent ?? 0,
           ...(size.price !== null ? { listUnitPrice: size.price } : {}),
         }],
       };
@@ -715,7 +717,7 @@ export function AdminOrders({
                           <option value="" disabled>{catalog ? "اختر منتجًا وحجمًا" : "جاري تحميل الكتالوج…"}</option>
                           {catalog?.flatMap((product) => product.active ? product.sizes.filter((size) => size.active).map((size) => (
                             <option key={`${product.slug}:${size.id}`} value={`${product.slug}:${size.id}`}>
-                              {product.name} — {size.label}{size.price === null ? " (السعر غير محدد)" : ` — ${money(size.price)}`}
+                              {product.name} — {size.label}{size.price === null ? " (السعر غير محدد)" : ` — ${money(getProductPrice(size))}`}
                             </option>
                           )) : [])}
                         </select>

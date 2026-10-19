@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import type { Product, ProductSize } from "@/data/products";
+import { formatProductPrice, getProductPrice, validateProductDiscount } from "@/data/products";
 
 function lines(value: readonly string[]) {
   return value.join("\n");
@@ -70,20 +71,26 @@ export function AdminProductManager({
   async function save() {
     setState("saving");
     setMessage("");
-    const response = await fetch("/api/admin/products", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ products }),
-    });
-    const result = (await response.json()) as { data?: Product[]; error?: string };
-    if (!response.ok || !result.data) {
+    try {
+      for (const item of products) for (const size of item.sizes) validateProductDiscount(size);
+      const response = await fetch("/api/admin/products", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ products }),
+      });
+      const result = (await response.json()) as { data?: Product[]; error?: string };
+      if (!response.ok || !result.data) {
+        setState("error");
+        setMessage(result.error ?? "تعذر حفظ المنتجات.");
+        return;
+      }
+      setProducts(result.data);
+      setState("saved");
+      setMessage("تم حفظ المنتجات ونشرها على الموقع.");
+    } catch (error) {
       setState("error");
-      setMessage(result.error ?? "تعذر حفظ المنتجات.");
-      return;
+      setMessage(error instanceof Error ? error.message : "تعذر الاتصال. حاول حفظ المنتجات مرة أخرى.");
     }
-    setProducts(result.data);
-    setState("saved");
-    setMessage("تم حفظ المنتجات ونشرها على الموقع.");
   }
 
   if (!product) return <div className="admin-empty"><h2>لا توجد منتجات.</h2></div>;
@@ -140,7 +147,17 @@ export function AdminProductManager({
                 <div>
                   <h3>{size.label}</h3>
                   <label><span>اسم الحجم الظاهر</span><input value={size.label} onChange={(e) => updateSize(size.id, { label: e.target.value })} /></label>
-                  <label><span>السعر بالجنيه</span><input type="number" min="0" step="0.01" value={size.price ?? ""} onChange={(e) => updateSize(size.id, { price: e.target.value === "" ? null : Number(e.target.value) })} /></label>
+                  <label><span>السعر الأساسي بالجنيه</span><input type="number" min="0" step="0.01" value={size.price ?? ""} onChange={(e) => updateSize(size.id, { price: e.target.value === "" ? null : Number(e.target.value) })} /></label>
+                  <label>
+                    <span>نسبة خصم المنتج (%)</span>
+                    <input type="number" min="0" max="100" step="0.01" value={size.discountPercent ?? 0} aria-describedby={`discount-help-${size.id}`} onChange={(e) => updateSize(size.id, { discountPercent: e.target.value === "" ? 0 : Number(e.target.value) })} />
+                    <small id={`discount-help-${size.id}`}>اكتب 0 لإلغاء الخصم. يُطبّق على العبوة عند شرائها منفردة؛ الباقات لها أسعارها الخاصة.</small>
+                  </label>
+                  <div className="admin-product-discount-preview" role="status" aria-live="polite">
+                    <span>السعر بعد خصم المنتج</span>
+                    {size.price === null || !Number.isFinite(size.discountPercent ?? 0) || (size.discountPercent ?? 0) < 0 || (size.discountPercent ?? 0) > 100 ? <strong>حدد سعرًا ونسبة خصم صحيحة</strong> : <div>{(size.discountPercent ?? 0) > 0 ? <del>{formatProductPrice(size.price)}</del> : null}<strong>{formatProductPrice(getProductPrice(size)!)}</strong></div>}
+                    <small>اضغط «حفظ المنتجات» لتطبيق التغييرات على الموقع.</small>
+                  </div>
                   <label><span>المخزون — اختياري</span><input type="number" min="0" value={size.stock ?? ""} onChange={(e) => updateSize(size.id, { stock: e.target.value === "" ? null : Number(e.target.value) })} /></label>
                   <label className="admin-switch"><input type="checkbox" checked={size.active} onChange={(e) => updateSize(size.id, { active: e.target.checked })} /><span>الحجم متاح</span></label>
                   <label className="admin-upload"><span>استبدل الصورة</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => { const file = e.target.files?.[0]; if (file) void upload(file, size.id); }} /></label>

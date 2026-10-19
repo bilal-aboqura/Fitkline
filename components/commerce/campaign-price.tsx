@@ -10,11 +10,13 @@ import { useCampaign } from "@/components/commerce/campaign-provider";
 
 export function CampaignPrice({
   price,
+  originalPrice,
   pendingLabel,
   compact = false,
   presentation = "default",
 }: {
   price: number | null;
+  originalPrice?: number | null;
   pendingLabel: string;
   compact?: boolean;
   presentation?: "default" | "configurator";
@@ -22,6 +24,8 @@ export function CampaignPrice({
   const status = useCampaign();
   const available = isSaleAvailable(status);
   const configurator = presentation === "configurator";
+  const listPrice = originalPrice ?? price;
+  const productDiscount = price !== null && listPrice !== null && listPrice > price;
 
   if (price === null) {
     return (
@@ -39,6 +43,13 @@ export function CampaignPrice({
   }
 
   if (!available) {
+    if (productDiscount) {
+      return <span className={`campaign-price campaign-price--product-discount${configurator ? " campaign-price--configurator" : ""}`}>
+        <del aria-label="السعر قبل الخصم">{formatProductPrice(listPrice!)}</del>
+        <strong aria-label="السعر بعد الخصم">{formatProductPrice(price)}</strong>
+        <small>خصم {Math.round((1 - price / listPrice!) * 10000) / 100}%</small>
+      </span>;
+    }
     return configurator ? (
       <span className="campaign-price campaign-price--configurator campaign-price--standard">
         <strong dir="ltr">{formatProductPrice(price)}</strong>
@@ -53,7 +64,7 @@ export function CampaignPrice({
       <div className="campaign-price campaign-price--configurator">
         <div className="campaign-price__original">
           <span>السعر الأصلي</span>
-          <del dir="ltr">{formatProductPrice(price)}</del>
+          <del dir="ltr">{formatProductPrice(listPrice!)}</del>
         </div>
         <div
           className="campaign-price__payment-list"
@@ -87,7 +98,7 @@ export function CampaignPrice({
     <span className={`campaign-price${compact ? " campaign-price--compact" : ""}`}>
       {compact ? (
         <span className="campaign-price__listing-summary">
-          <del dir="ltr">{formatProductPrice(price)}</del>
+          <del dir="ltr">{formatProductPrice(listPrice!)}</del>
           <span>
             <small>السعر يبدأ من</small>
             <strong dir="ltr">
@@ -98,8 +109,8 @@ export function CampaignPrice({
       ) : null}
       <span className="campaign-price__desktop-details">
         <span className="campaign-price__topline">
-          <del>{formatProductPrice(price)}</del>
-          <b>خصم حسب طريقة الدفع</b>
+          <del>{formatProductPrice(listPrice!)}</del>
+          <b>{productDiscount ? "خصم المنتج وخصم طريقة الدفع" : "خصم حسب طريقة الدفع"}</b>
         </span>
         <span className="campaign-price__payment-options">
           <strong>

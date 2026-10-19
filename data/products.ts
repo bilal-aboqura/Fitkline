@@ -4,6 +4,7 @@ export type ProductSize = {
   readonly id: ProductSizeId;
   readonly label: string;
   readonly price: number | null;
+  readonly discountPercent?: number;
   readonly stock: number | null;
   readonly active: boolean;
 };
@@ -77,6 +78,21 @@ export function formatProductPrice(price: number) {
     minimumFractionDigits: price % 1 ? 2 : 0,
     maximumFractionDigits: 2,
   })} ج.م`;
+}
+
+export function getProductPrice(size: Pick<ProductSize, "price" | "discountPercent">) {
+  if (size.price === null) return null;
+  return Math.round(size.price * (1 - (size.discountPercent ?? 0) / 100) * 100) / 100;
+}
+
+export function validateProductDiscount(size: Pick<ProductSize, "price" | "discountPercent">) {
+  const discount = size.discountPercent ?? 0;
+  if (typeof discount !== "number" || !Number.isFinite(discount) || discount < 0 || discount > 100) {
+    throw new Error("نسبة خصم المنتج لازم تكون رقمًا بين 0 و100.");
+  }
+  if (discount > 0 && (size.price === null || size.price <= 0)) {
+    throw new Error("حدد سعرًا أساسيًا أكبر من صفر قبل تفعيل خصم المنتج.");
+  }
 }
 
 const sizes: readonly ProductSize[] = [

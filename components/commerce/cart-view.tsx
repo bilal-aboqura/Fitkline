@@ -2,50 +2,38 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useMemo } from "react";
+import type { Product } from "@/data/products";
+import type { StoreOffer } from "@/data/offers";
+import { getCartSubtotal, repriceCartItems } from "@/lib/cart-pricing";
 import { useCart } from "@/components/commerce/cart-provider";
 import { CampaignPrice } from "@/components/commerce/campaign-price";
 import { useCampaign } from "@/components/commerce/campaign-provider";
 import {
-  getDiscountAmount,
+  getDiscountedPrice,
   isSaleAvailable,
   saleCampaign,
 } from "@/data/campaign";
 
-export function CartView() {
-  const { items, updateQuantity, removeItem } = useCart();
+export function CartView({ products, offers }: { products: Product[]; offers: StoreOffer[] }) {
+  const { items: savedItems, updateQuantity, removeItem } = useCart();
+  const items = useMemo(() => repriceCartItems(savedItems, products, offers), [savedItems, products, offers]);
   const campaignStatus = useCampaign();
   const saleAvailable = isSaleAvailable(campaignStatus);
   const hasPendingPrice = items.some(
     (item) => typeof item.unitPrice !== "number",
   );
-  const listSubtotal = hasPendingPrice
-    ? null
-    : items.reduce(
-        (total, item) => total + (item.unitPrice ?? 0) * item.quantity,
-        0,
-      );
+  const listSubtotal = getCartSubtotal(items);
+  const originalSubtotal = hasPendingPrice ? null : items.reduce((sum, item) => sum + (item.listUnitPrice ?? item.unitPrice ?? 0) * item.quantity, 0);
+  const productDiscount = originalSubtotal !== null && listSubtotal !== null ? Math.max(0, originalSubtotal - listSubtotal) : 0;
   const cashDiscount =
     listSubtotal === null || !saleAvailable
       ? 0
-      : items.reduce(
-          (total, item) =>
-            total +
-            (typeof item.unitPrice === "number"
-              ? getDiscountAmount(item.unitPrice, "cod") * item.quantity
-              : 0),
-          0,
-        );
+      : listSubtotal - getCartSubtotal(items, (price) => getDiscountedPrice(price, "cod"))!;
   const electronicDiscount =
     listSubtotal === null || !saleAvailable
       ? 0
-      : items.reduce(
-          (total, item) =>
-            total +
-            (typeof item.unitPrice === "number"
-              ? getDiscountAmount(item.unitPrice, "kashier") * item.quantity
-              : 0),
-          0,
-        );
+      : listSubtotal - getCartSubtotal(items, (price) => getDiscountedPrice(price, "kashier"))!;
 
   if (!items.length) {
     return (
@@ -77,13 +65,14 @@ export function CartView() {
             />
             <div className="cart-item__copy">
               <p dir="ltr">{item.name}</p>
-              {item.offerTitle ? <small className="cart-item__offer">ضمن باقة {item.offerTitle}</small> : null}
+              {item.offerTitle ? <small className="cart-item__offer">{item.offerUnavailable ? "العرض انتهى أو كمية الباقة اتغيرت؛ السعر الحالي للمنتج هو اللي بيتطبق." : `ضمن باقة ${item.offerTitle}`}</small> : null}
               <h2>{item.sizeLabel}</h2>
               <CampaignPrice
                 compact
                 price={
                   typeof item.unitPrice === "number" ? item.unitPrice : null
                 }
+                originalPrice={item.listUnitPrice}
                 pendingLabel="السعر بعد تأكيد التوفر"
               />
             </div>
@@ -118,12 +107,16 @@ export function CartView() {
             <dt>عدد المنتجات</dt>
             <dd>{items.reduce((total, item) => total + item.quantity, 0)}</dd>
           </div>
+          {productDiscount > 0 ? <>
+            <div><dt>قيمة المنتجات قبل خصم المنتج</dt><dd>{originalSubtotal?.toLocaleString("ar-EG", { maximumFractionDigits: 2 })} ج.م</dd></div>
+            <div className="cart-summary__discount"><dt>توفير خصومات المنتجات والباقات</dt><dd>{productDiscount.toLocaleString("ar-EG", { maximumFractionDigits: 2 })} ج.م</dd></div>
+          </> : null}
           <div>
-            <dt>المجموع قبل خصم الدفع</dt>
+            <dt>{saleAvailable ? "المجموع قبل خصم الدفع" : "إجمالي المنتجات"}</dt>
             <dd>
               {listSubtotal === null
                 ? "قيد التأكيد"
-                : `${listSubtotal.toLocaleString("ar-EG")} ج.م`}
+                : `${listSubtotal.toLocaleString("ar-EG", { maximumFractionDigits: 2 })} ج.م`}
             </dd>
           </div>
           {saleAvailable ? (

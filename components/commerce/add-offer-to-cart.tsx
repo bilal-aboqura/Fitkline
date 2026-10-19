@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import type { StoreOffer } from "@/data/offers";
 import { getOfferListPrice } from "@/data/offers";
+import { getLinePrice } from "@/lib/cart-pricing";
 import type { Product } from "@/data/products";
 import { useCart } from "@/components/commerce/cart-provider";
 
@@ -28,12 +29,8 @@ export function AddOfferToCart({ offer, products }: { offer: StoreOffer; product
       const product = products.find((candidate) => candidate.slug === entry.slug);
       const size = product?.sizes.find((candidate) => candidate.id === entry.sizeId && candidate.active);
       if (!product || !size) return [];
-      const unitPrice = size.price === null
-        ? null
-        : offer.offerPrice !== null && listPrice
-          ? Math.round((size.price / listPrice) * offer.offerPrice * 100) / 100
-          : Math.round(size.price * (1 - offer.discountPercent / 100) * 100) / 100;
-      return Array.from({ length: entry.quantity }, () => ({ slug: product.slug, name: product.name, sizeId: size.id, sizeLabel: size.label, unitPrice, image: product.sizeImages[size.id] ?? product.image, offerId: offer.id, offerTitle: offer.title }));
+      const unitPrice = getLinePrice(size, entry.quantity, { offer, listPrice });
+      return Array.from({ length: entry.quantity }, () => ({ slug: product.slug, name: product.name, sizeId: size.id, sizeLabel: size.label, unitPrice, listUnitPrice: size.price, image: product.sizeImages[size.id] ?? product.image, offerId: offer.id, offerTitle: offer.title }));
     });
     try {
       addBundle(items);

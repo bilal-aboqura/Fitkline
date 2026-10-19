@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { getActiveProductVariants } from "@/data/products";
+import { getActiveProductVariants, getProductPrice } from "@/data/products";
 import { getCmsProducts } from "@/lib/cms-store";
 import { CampaignBadge } from "@/components/commerce/campaign-badge";
 import { CampaignPrice } from "@/components/commerce/campaign-price";
@@ -90,7 +90,8 @@ export default async function ProductsPage() {
                   <div className="catalog-card__bottom">
                     <CampaignPrice
                       compact
-                      price={size.price}
+                      price={getProductPrice(size)}
+                      originalPrice={size.price}
                       pendingLabel={product.priceLabel}
                     />
                     <Link className="fit-button-primary" href={href}>

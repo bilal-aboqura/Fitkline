@@ -8,9 +8,8 @@ import { isCustomerEligibleForSale } from "@/lib/campaign-store";
 import { notifyTelegramAboutNewOrder } from "@/lib/telegram";
 import {
   getDiscountedPrice,
-  getPaymentDiscountPercent,
 } from "@/data/campaign";
-import { getOfferListPrice, isOfferPublic, type StoreOffer } from "@/data/offers";
+import { getValidBundleOffers, getLinePrice } from "@/lib/cart-pricing";
 import { phoneComparisonKey } from "@/lib/phone";
 import { getCustomerLoyalty } from "@/lib/customer-loyalty-store";
 import { isEgyptianMobile } from "@/lib/customer-loyalty";
@@ -85,12 +84,7 @@ export async function POST(request: Request) {
     }
 
     const content = await getCmsContent();
-    const validOffers = new Map<string, { offer: StoreOffer; listPrice: number | null }>();
-    for (const offer of content.offers.filter((candidate) => isOfferPublic(candidate))) {
-      const submittedForOffer = rawItems.filter((item) => text(item.offerId) === offer.id);
-      const isExactBundle = submittedForOffer.length === offer.items.length && offer.items.every((required) => submittedForOffer.some((item) => text(item.slug) === required.slug && text(item.sizeId) === required.sizeId && Number(item.quantity) === required.quantity));
-      if (isExactBundle) validOffers.set(offer.id, { offer, listPrice: getOfferListPrice(offer, content.products) });
-    }
+    const validOffers = getValidBundleOffers(rawItems, content.offers, content.products);
     const requestedMethod = text(body.paymentMethod);
     const paymentMethod: PaymentMethod =
       requestedMethod === "kashier" ? "kashier" : "cod";
@@ -131,16 +125,7 @@ export async function POST(request: Request) {
       }
       const offerId = text(rawItem.offerId);
       const offerPricing = offerId ? validOffers.get(offerId) : undefined;
-      const offer = offerPricing?.offer;
-      const offerDiscount = offer ? offer.discountPercent : 0;
-      const packageLinePrice = size.price === null || !offer || offer.offerPrice === null || !offerPricing?.listPrice
-        ? null
-        : Math.round((size.price * quantity / offerPricing.listPrice) * offer.offerPrice * 100) / 100;
-      const listAfterOffer = size.price === null
-        ? null
-        : packageLinePrice !== null
-          ? packageLinePrice / quantity
-          : Math.round(size.price * (1 - offerDiscount / 100) * 100) / 100;
+      const listAfterOffer = getLinePrice(size, quantity, offerPricing);
       const unitPrice =
         listAfterOffer === null
           ? null
@@ -156,9 +141,9 @@ export async function POST(request: Request) {
         sizeLabel: size.label,
         quantity,
         unitPrice,
-        ...(saleEligible || offer
+        ...(size.price !== null && unitPrice !== null && unitPrice < size.price
           ? {
-              discountPercent: (offer ? Math.round((1 - (listAfterOffer ?? size.price ?? 0) / (size.price || 1)) * 10000) / 100 : 0) + (saleEligible ? getPaymentDiscountPercent(paymentMethod) : 0),
+              discountPercent: Math.round((1 - unitPrice / size.price) * 10000) / 100,
               ...(size.price !== null ? { listUnitPrice: size.price } : {}),
             }
           : {}),
@@ -166,6 +151,13 @@ export async function POST(request: Request) {
     }
 
     const kashier = getKashierConfiguration();
+    const confirmedSubtotal = hasPendingPrice ? null : subtotal;
+    if (Object.hasOwn(body, "expectedSubtotal") && (
+      (body.expectedSubtotal === null) !== (confirmedSubtotal === null) ||
+      (confirmedSubtotal !== null && (typeof body.expectedSubtotal !== "number" || Math.abs(body.expectedSubtotal - confirmedSubtotal) >= 0.005))
+    )) {
+      return NextResponse.json({ error: "أسعار السلة اتغيرت. حدّث الصفحة وراجع الإجمالي قبل تأكيد الطلب." }, { status: 409 });
+    }
     const shippingAmount = shippingLocation.shippingPrice;
     const total =
       !hasPendingPrice && shippingAmount !== null
