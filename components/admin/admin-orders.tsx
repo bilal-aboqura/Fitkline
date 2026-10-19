@@ -10,6 +10,7 @@ import type { BostaStatusKey } from "@/lib/bosta-status";
 import { mylerzStatusLabel } from "@/lib/mylerz-status";
 import type { OrderStatus, StoredOrder } from "@/lib/order-store";
 import type { Product } from "@/data/products";
+import { getAmountDueOnDelivery, getOnlinePaymentAmount, getOrderPaymentLabel } from "@/lib/order-payment";
 
 const statusLabels: Record<OrderStatus, string> = {
   new: "جديد",
@@ -18,13 +19,6 @@ const statusLabels: Record<OrderStatus, string> = {
   shipped: "تم الشحن",
   completed: "مكتمل",
   cancelled: "ملغي",
-};
-
-const paymentStatusLabels: Record<StoredOrder["paymentStatus"], string> = {
-  pending: "في انتظار الدفع",
-  paid: "مدفوع",
-  failed: "فشل الدفع",
-  "not-required": "الدفع عند الاستلام",
 };
 
 function money(value: number | null) {
@@ -79,6 +73,8 @@ function orderWhatsAppLink(order: StoredOrder) {
     products,
     `🚚 *الشحن:* ${money(order.shippingAmount)}`,
     `💰 *الإجمالي:* ${money(order.total)}`,
+    `حالة الدفع: ${getOrderPaymentLabel(order)}`,
+    `المطلوب عند الاستلام: ${money(getAmountDueOnDelivery(order))}`,
   ].join("\n");
   return `https://wa.me/${recipient}?text=${encodeURIComponent(text)}`;
 }
@@ -172,7 +168,10 @@ function OrderPrintSheet({ order }: { order: StoredOrder }) {
           <dl>
             <div><dt>حالة التنفيذ</dt><dd>{statusLabels[order.orderStatus]}</dd></div>
             <div><dt>طريقة الدفع</dt><dd>{order.paymentMethod === "kashier" ? "دفع إلكتروني" : "الدفع عند الاستلام"}</dd></div>
-            <div><dt>حالة الدفع</dt><dd>{paymentStatusLabels[order.paymentStatus]}</dd></div>
+            <div><dt>حالة الدفع</dt><dd>{getOrderPaymentLabel(order)}</dd></div>
+            <div><dt>المبلغ أونلاين</dt><dd>{money(getOnlinePaymentAmount(order))}</dd></div>
+            <div><dt>المطلوب عند الاستلام</dt><dd>{money(getAmountDueOnDelivery(order))}</dd></div>
+            {order.paymentPlan?.fitklineCustomer ? <div><dt>فئة العميل</dt><dd>عميل Fitkline · سكور {order.paymentPlan.score}% · {order.paymentPlan.deliveredOrders} طلبات مستلمة</dd></div> : null}
             {order.kashierPaymentId ? (
               <div><dt>رقم عملية الدفع</dt><dd dir="ltr">{order.kashierPaymentId}</dd></div>
             ) : null}
@@ -661,7 +660,9 @@ export function AdminOrders({
                 <span>
                   <b>{order.total === null ? "الإجمالي قيد التأكيد" : money(order.total)}</b>
                   <small>
-                    {order.paymentMethod === "kashier" ? "دفع إلكتروني" : "دفع عند الاستلام"} · {paymentStatusLabels[order.paymentStatus]}
+                    {order.paymentMethod === "kashier" ? "دفع إلكتروني" : "دفع عند الاستلام"} · {getOrderPaymentLabel(order)}
+                    {order.paymentPlan?.fitklineCustomer ? <small>عميل Fitkline</small> : null}
+                    {order.paymentMethod === "cod" ? <small>التحصيل عند الاستلام: {money(getAmountDueOnDelivery(order))}</small> : null}
                   </small>
                 </span>
                 <span className={`admin-status admin-status--${order.orderStatus}`}>

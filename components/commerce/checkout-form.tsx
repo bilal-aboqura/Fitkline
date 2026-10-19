@@ -17,6 +17,7 @@ import {
 } from "@/data/campaign";
 import type { ShippingGovernorate } from "@/lib/shipping-store";
 import { phoneComparisonKey } from "@/lib/phone";
+import { isEgyptianMobile } from "@/lib/customer-loyalty";
 
 function money(value: number) {
   return `${value.toLocaleString("ar-EG", {
@@ -45,7 +46,14 @@ export function CheckoutForm({
     paymentOptions.cod ? "cod" : "kashier",
   );
   const [loading, setLoading] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [loyalty, setLoyalty] = useState<{ phone: string; eligible: boolean } | null>(null);
+  const [loyaltyError, setLoyaltyError] = useState("");
+  const [loyaltyRetry, setLoyaltyRetry] = useState(0);
   const initiatedCheckout = useRef(false);
+  const phoneKey = phoneComparisonKey(phone);
+  const loyaltyReady = loyalty?.phone === phoneKey;
+  const fitklineCustomer = loyaltyReady && loyalty.eligible;
 
   const governorate = shippingLocations.find(
     (item) => item.id === governorateId,
@@ -97,6 +105,36 @@ export function CheckoutForm({
     subtotal !== null && shippingAmount !== null
       ? subtotal + shippingAmount
       : null;
+  const shippingPrepayment = effectivePaymentMethod === "cod" && !fitklineCustomer;
+  const onlineAmount = effectivePaymentMethod === "kashier" ? total : shippingPrepayment ? shippingAmount : 0;
+  const dueOnDelivery = effectivePaymentMethod === "cod" ? fitklineCustomer ? total : subtotal : 0;
+  const codUnavailable = effectivePaymentMethod === "cod" && (
+    !loyaltyReady || (shippingPrepayment && (shippingAmount === null || (shippingAmount > 0 && !paymentOptions.kashier)))
+  );
+
+  useEffect(() => {
+    if (!isEgyptianMobile(phoneKey)) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch("/api/checkout/customer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: phoneKey }),
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
+        });
+        if (!response.ok) throw new Error("Loyalty lookup failed");
+        const result = await response.json();
+        if (!controller.signal.aborted) {
+          setLoyalty({ phone: phoneKey, eligible: result.eligible === true });
+          setLoyaltyError("");
+        }
+      } catch {
+        if (!controller.signal.aborted) setLoyaltyError("تعذر التحقق من ميزة عميل Fitkline. حاول تاني.");
+      }
+    }, 400);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [phoneKey, loyaltyRetry]);
 
   useEffect(() => {
     if (!items.length || initiatedCheckout.current) return;
@@ -154,6 +192,10 @@ export function CheckoutForm({
     event.preventDefault();
     setError("");
     setPhoneError("");
+    if (codUnavailable) {
+      setError("استنى التحقق من رقمك واختار عنوان بشحن محدد قبل المتابعة.");
+      return;
+    }
     const formData = new FormData(event.currentTarget);
     const phone = formData.get("phone");
     const alternatePhone = formData.get("alternatePhone");
@@ -195,7 +237,7 @@ export function CheckoutForm({
         error?: string;
       };
       if (!response.ok) {
-        throw new Error(result.error ?? "حصلت مشكلة في تسجيل الطلب.");
+        throw new Error(`${result.error ?? "حصلت مشكلة في تسجيل الطلب."}${result.reference ? ` رقم الطلب: ${result.reference}` : ""}`);
       }
       if (result.redirectUrl) {
         window.location.assign(result.redirectUrl);
@@ -261,7 +303,12 @@ export function CheckoutForm({
               type="tel"
               inputMode="tel"
               autoComplete="tel"
-              onChange={() => {
+              value={phone}
+              aria-describedby="fitkline-customer-status"
+              onChange={(event) => {
+                setPhone(event.target.value);
+                setLoyaltyError("");
+                if (phoneComparisonKey(event.target.value) !== phoneKey) setLoyalty(null);
                 if (phoneError) setPhoneError("");
               }}
             />
@@ -342,6 +389,11 @@ export function CheckoutForm({
             />
           </label>
         </div>
+        <div id="fitkline-customer-status" className={`checkout-customer-status${fitklineCustomer ? " checkout-customer-status--member" : ""}`} role="status" aria-live="polite">
+          {fitklineCustomer ? <><strong>أنت عميل Fitkline</strong><p>شكرًا لثقتك فينا. تقدر تدفع قيمة الطلب والشحن بالكامل عند الاستلام، من غير دفع شحن مقدم.</p></> :
+            loyaltyError ? <><p>{loyaltyError}</p><button type="button" className="fit-button-secondary" onClick={() => { setLoyaltyError(""); setLoyaltyRetry((value) => value + 1); }}>حاول تاني</button></> :
+            <p>{!isEgyptianMobile(phone) ? "اكتب رقم الموبايل الأساسي علشان نتحقق من ميزة عميل Fitkline." : !loyaltyReady ? "بنتحقق من ميزة عميل Fitkline…" : "مع الدفع عند الاستلام، بتدفع الشحن أونلاين والمنتجات وقت وصولها. عملاء Fitkline المؤهلون بيدفعوا الكل عند الاستلام."}</p>}
+        </div>
       </div>
 
       <div className="form-section">
@@ -415,6 +467,14 @@ export function CheckoutForm({
             <dt>الإجمالي</dt>
             <dd>{total === null ? "قيد التأكيد" : money(total)}</dd>
           </div>
+          <div>
+            <dt>المطلوب أونلاين دلوقتي{shippingPrepayment ? " (الشحن فقط)" : ""}</dt>
+            <dd>{effectivePaymentMethod === "cod" && !loyaltyReady ? "بعد التحقق من رقمك" : onlineAmount === null ? "قيد التأكيد" : money(onlineAmount)}</dd>
+          </div>
+          <div>
+            <dt>عند الاستلام</dt>
+            <dd>{effectivePaymentMethod === "cod" && !loyaltyReady ? "بعد التحقق من رقمك" : dueOnDelivery === null ? "قيد التأكيد" : money(dueOnDelivery)}</dd>
+          </div>
         </dl>
 
         <fieldset className="payment-methods">
@@ -436,7 +496,7 @@ export function CheckoutForm({
                   {saleAvailable ? <em>خصم {saleCampaign.discountPercent}%</em> : null}
                 </b>
                 <small>
-                  ادفع وقت وصول الطلب. لو أي سعر لسه غير محدد، الفريق هيأكد الإجمالي معاك قبل التنفيذ.
+                  {fitklineCustomer ? "بصفتك عميل Fitkline، ادفع المنتجات والشحن عند الاستلام." : "ادفع الشحن فقط أونلاين عبر كاشير، وقيمة المنتجات عند الاستلام. دفع الشحن مقدمًا لا يغيّر خصم الدفع عند الاستلام."}
                 </small>
               </span>
             </label>
@@ -469,6 +529,7 @@ export function CheckoutForm({
             </label>
           ) : null}
         </fieldset>
+        {shippingPrepayment && loyaltyReady && city && (shippingAmount === null || (shippingAmount > 0 && !paymentOptions.kashier)) ? <p className="form-error" role="alert">{shippingAmount === null ? "سعر الشحن لعنوانك قيد التأكيد. تواصل مع الفريق لاستكمال الطلب." : "دفع الشحن أونلاين غير متاح حاليًا. حاول لاحقًا أو تواصل مع الفريق."}</p> : null}
 
         {noPaymentMethod ? (
           <p className="form-error" role="alert">
@@ -483,10 +544,14 @@ export function CheckoutForm({
         <button
           className="fit-button-primary"
           type="submit"
-          disabled={loading || noPaymentMethod}
+          disabled={loading || noPaymentMethod || codUnavailable}
         >
           {loading
             ? "جاري تسجيل الطلب…"
+            : effectivePaymentMethod === "cod" && !loyaltyReady
+              ? loyaltyError ? "أعد التحقق من رقمك أولًا" : isEgyptianMobile(phone) ? "جاري التحقق من ميزة عميل Fitkline…" : "اكتب رقمك للتحقق أولًا"
+            : shippingPrepayment && (onlineAmount ?? 0) > 0
+              ? `ادفع الشحن ${money(onlineAmount!)} وأكمل الطلب`
             : effectivePaymentMethod === "kashier"
               ? "تابع للدفع الآمن"
               : "سجل الطلب"}

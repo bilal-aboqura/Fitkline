@@ -2,6 +2,7 @@ import Link from "next/link";
 import { findOrder, updateOrder } from "@/lib/order-store";
 import { inspectKashierPayment, verifyKashierSession } from "@/lib/kashier";
 import { MetaPurchaseEvent } from "@/components/analytics/meta-purchase-event";
+import { getOnlinePaymentAmount, getAmountDueOnDelivery } from "@/lib/order-payment";
 
 export const metadata = { title: "نتيجة الدفع" };
 
@@ -16,14 +17,14 @@ export default async function CheckoutResultPage({
   if (
     order?.paymentStatus === "pending" &&
     order.kashierSessionId &&
-    order.total !== null
+    getOnlinePaymentAmount(order) !== null
   ) {
     try {
       const verified = await verifyKashierSession(order.kashierSessionId);
       const inspection = inspectKashierPayment(verified, {
         sessionId: order.kashierSessionId,
         reference: order.reference,
-        amount: order.total,
+        amount: getOnlinePaymentAmount(order)!,
         currency: order.currency,
       });
       if (!inspection.integrityValid) {
@@ -44,6 +45,8 @@ export default async function CheckoutResultPage({
 
   const paid = order?.paymentStatus === "paid";
   const failed = order?.paymentStatus === "failed";
+  const shippingOnly = order?.paymentMethod === "cod";
+  const dueOnDelivery = order ? getAmountDueOnDelivery(order) : null;
 
   return (
     <main id="main-content" className="standard-page">
@@ -58,19 +61,20 @@ export default async function CheckoutResultPage({
       <section className="page-hero page-hero--redesign page-hero--compact">
         <div className="fit-container page-hero__inner">
           <p className="section-heading__kicker" dir="ltr">KASHIER / PAYMENT</p>
-          <h1>{paid ? "الدفع تم بنجاح." : failed ? "الدفع لم يكتمل." : "الدفع قيد التأكيد."}</h1>
+          <h1>{paid ? shippingOnly ? "الشحن اتدفع بنجاح." : "الدفع تم بنجاح." : failed ? "الدفع لم يكتمل." : "الدفع قيد التأكيد."}</h1>
           <p>
             {paid
               ? `تم تسجيل طلبك ${order?.reference ?? ""}، وفريق Fitkline هيبدأ المتابعة.`
               : failed
-                ? "لم يتم خصم الطلب بنجاح. تقدر ترجع للسلة وتحاول مرة أخرى."
+                ? "الدفع لم يكتمل. احتفظ برقم الطلب وتواصل مع الفريق لاستكماله."
                 : "نراجع حالة العملية مع كاشير. احتفظ برقم الطلب وراجع الصفحة بعد لحظات."}
           </p>
+          {paid && shippingOnly ? <p>قيمة المنتجات عند الاستلام: {dueOnDelivery === null ? "الفريق هيأكدها معاك قبل التنفيذ" : `${dueOnDelivery.toLocaleString("ar-EG")} ج.م`}. الشحن مدفوع ومش هيتحصّل منك مرة تانية.</p> : null}
           <div className="page-actions">
-            <Link className="fit-button-primary" href={failed ? "/checkout" : "/products"}>
-              {failed ? "حاول مرة أخرى" : "ارجع للمنتجات"}
+            <Link className="fit-button-primary" href={failed ? "/contact" : "/products"}>
+              {failed ? "تواصل لاستكمال الدفع" : "ارجع للمنتجات"}
             </Link>
-            <Link className="fit-button-secondary" href="/contact">تواصل مع الفريق</Link>
+            <Link className="fit-button-secondary" href={failed ? "/checkout" : "/contact"}>{failed ? "ابدأ طلب جديد" : "تواصل مع الفريق"}</Link>
           </div>
         </div>
       </section>

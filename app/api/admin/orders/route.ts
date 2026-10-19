@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 import { sendMetaOrderCancelled } from "@/lib/meta-conversions";
+import { isAwaitingOnlinePayment } from "@/lib/order-payment";
 import {
   findOrder,
   getOrders,
@@ -81,6 +82,14 @@ export async function PATCH(request: Request) {
   const currentOrder = await findOrder(body.reference);
   if (!currentOrder) {
     return NextResponse.json({ error: "الطلب غير موجود." }, { status: 404 });
+  }
+  if (isAwaitingOnlinePayment(currentOrder) &&
+    (body.orderStatus === "confirmed" || body.orderStatus === "processing" || body.orderStatus === "shipped" || body.orderStatus === "completed")) {
+    return NextResponse.json({ error: "أكد الدفع الإلكتروني المطلوب قبل تنفيذ الطلب." }, { status: 400 });
+  }
+  if (currentOrder.kashierSessionId && currentOrder.paymentStatus !== "paid" &&
+    (body.items !== undefined || body.shippingAmount !== undefined)) {
+    return NextResponse.json({ error: "لا يمكن تغيير مبالغ طلب له جلسة دفع غير مكتملة. ألغِ الطلب أو انتظر تأكيد الدفع أولًا." }, { status: 400 });
   }
   let items: StoredOrder["items"] | undefined;
   let subtotal: number | null | undefined;

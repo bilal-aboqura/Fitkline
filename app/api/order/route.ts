@@ -12,6 +12,8 @@ import {
 } from "@/data/campaign";
 import { getOfferListPrice, isOfferPublic, type StoreOffer } from "@/data/offers";
 import { phoneComparisonKey } from "@/lib/phone";
+import { getCustomerLoyalty } from "@/lib/customer-loyalty-store";
+import { isEgyptianMobile } from "@/lib/customer-loyalty";
 import {
   createOrder,
   updateOrder,
@@ -49,6 +51,11 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    if (!isEgyptianMobile(customer.phone) || !isEgyptianMobile(customer.alternatePhone)) {
+      return NextResponse.json({ error: "اكتب رقم موبايل مصري صحيح للرقم الأساسي والبديل." }, { status: 400 });
+    }
+    customer.phone = `0${phoneComparisonKey(customer.phone)}`;
+    customer.alternatePhone = `0${phoneComparisonKey(customer.alternatePhone)}`;
     if (
       phoneComparisonKey(customer.phone) ===
       phoneComparisonKey(customer.alternatePhone)
@@ -164,6 +171,18 @@ export async function POST(request: Request) {
       !hasPendingPrice && shippingAmount !== null
         ? subtotal + shippingAmount
         : null;
+    // Recheck on the server; a browser-provided customer tier cannot waive payment.
+    const loyalty = paymentMethod === "cod"
+      ? await getCustomerLoyalty(customer.phone)
+      : { eligible: false, deliveredOrders: 0, score: 0 };
+    const requiresShippingPrepayment = paymentMethod === "cod" && !loyalty.eligible;
+    if (requiresShippingPrepayment && shippingAmount === null) {
+      return NextResponse.json({ error: "لازم يتحدد سعر الشحن قبل دفعه أونلاين. تواصل مع الفريق." }, { status: 400 });
+    }
+    const onlineAmount = paymentMethod === "kashier" ? total : requiresShippingPrepayment ? shippingAmount : 0;
+    if ((onlineAmount ?? 0) > 0 && (!content.settings.kashierEnabled || !kashier.ready)) {
+      return NextResponse.json({ error: "دفع الشحن أونلاين غير متاح حاليًا. حاول لاحقًا أو تواصل مع الفريق." }, { status: 400 });
+    }
     if (paymentMethod === "kashier") {
       if (!content.settings.kashierEnabled || !kashier.ready) {
         return NextResponse.json({ error: "الدفع الإلكتروني غير متاح حاليًا." }, { status: 400 });
@@ -200,7 +219,13 @@ export async function POST(request: Request) {
       currency: "EGP",
       orderStatus: "new",
       paymentMethod,
-      paymentStatus: paymentMethod === "kashier" ? "pending" : "not-required",
+      paymentStatus: (onlineAmount ?? 0) > 0 ? "pending" : "not-required",
+      paymentPlan: {
+        onlineAmount: onlineAmount ?? 0,
+        fitklineCustomer: loyalty.eligible,
+        deliveredOrders: loyalty.deliveredOrders,
+        score: loyalty.score,
+      },
     };
     await createOrder(order);
     try {
@@ -212,14 +237,14 @@ export async function POST(request: Request) {
       );
     }
 
-    if (paymentMethod === "kashier") {
+    if ((onlineAmount ?? 0) > 0) {
       try {
         const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL
           ? getSiteOrigin()
           : new URL(request.url).origin;
         const session = await createKashierSession({
           reference,
-          amount: total!,
+          amount: onlineAmount!,
           customerEmail: customer.email,
           customerReference: customer.phone,
           origin: configuredOrigin,
@@ -235,7 +260,7 @@ export async function POST(request: Request) {
           notes: error instanceof Error ? error.message : "Kashier session failed",
         });
         return NextResponse.json(
-          { error: "تعذر فتح جلسة كاشير. الطلب اتسجل ويمكنك اختيار الدفع عند الاستلام.", reference },
+          { error: "تعذر فتح صفحة الدفع. الطلب محفوظ ولم يُؤكد الدفع؛ تواصل مع الفريق برقم الطلب.", reference },
           { status: 502 },
         );
       }

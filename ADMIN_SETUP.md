@@ -133,6 +133,25 @@ the notification error is recorded in the server logs.
 
 ## 6. Storage
 
+### COD shipping and Fitkline customers
+
+Run `npm run db:migrate:cod` before deploying this checkout version. It adds
+the order's payment snapshot and a service-role-only phone history function.
+Existing orders retain their original payment behavior.
+
+COD customers pay shipping through Kashier and products on delivery. Customers
+with at least three delivered orders and a receipt score of at least 80% on
+their primary phone qualify as Fitkline customers and pay everything on delivery.
+The score is delivered / (delivered + cancelled or returned orders); open orders
+do not count. Thresholds live in `lib/customer-loyalty.ts`. Shipping is deferred,
+not free. Failed history checks block COD until retry so the exemption is never
+guessed. Zero-cost shipping needs no payment session.
+
+Keep Kashier enabled and configured to accept prepaid shipping. Its callback
+verifies the snapshot's online amount, and Bosta/Mylerz collect only the unpaid
+balance. Pending or failed online payments block fulfillment. Test coverage:
+`npm run test:checkout`. No real payment is made by these tests.
+
 - CMS content and products: `fitkline_cms_documents`
 - Orders: `fitkline_orders`
 - Anonymous page-view analytics: `fitkline_analytics_events`

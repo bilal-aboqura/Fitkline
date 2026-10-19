@@ -85,6 +85,12 @@ export type StoredOrder = {
   orderStatus: OrderStatus;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
+  paymentPlan?: {
+    onlineAmount: number;
+    fitklineCustomer: boolean;
+    deliveredOrders: number;
+    score: number;
+  };
   kashierSessionId?: string;
   kashierPaymentId?: string;
   bosta?: BostaShipment;
@@ -106,6 +112,7 @@ type OrderRow = {
   order_status: OrderStatus;
   payment_method: PaymentMethod;
   payment_status: PaymentStatus;
+  payment_plan: StoredOrder["paymentPlan"] | null;
   kashier_session_id: string | null;
   kashier_payment_id: string | null;
   bosta: BostaShipment | null;
@@ -132,6 +139,7 @@ function fromRow(row: OrderRow): StoredOrder {
     orderStatus: row.order_status,
     paymentMethod: row.payment_method,
     paymentStatus: row.payment_status,
+    ...(row.payment_plan ? { paymentPlan: row.payment_plan } : {}),
     ...(row.kashier_session_id
       ? { kashierSessionId: row.kashier_session_id }
       : {}),
@@ -159,6 +167,7 @@ function toRow(order: StoredOrder) {
     order_status: order.orderStatus,
     payment_method: order.paymentMethod,
     payment_status: order.paymentStatus,
+    payment_plan: order.paymentPlan ?? null,
     kashier_session_id: order.kashierSessionId ?? null,
     kashier_payment_id: order.kashierPaymentId ?? null,
     bosta: order.bosta ?? null,

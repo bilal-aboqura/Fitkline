@@ -1,4 +1,5 @@
 import "server-only";
+import { getAmountDueOnDelivery, isAwaitingOnlinePayment } from "@/lib/order-payment";
 
 import { getSiteOrigin } from "@/lib/site-url";
 import { phoneComparisonKey } from "@/lib/phone";
@@ -553,6 +554,9 @@ export async function listBostaDeliveriesForImport() {
 }
 
 export async function createBostaDelivery(order: StoredOrder) {
+  if (isAwaitingOnlinePayment(order)) {
+    throw new BostaIntegrationError("لا يمكن إنشاء الشحنة قبل تأكيد الدفع الإلكتروني المطلوب.", 400);
+  }
   if (order.bosta?.trackingNumber) {
     throw new BostaIntegrationError("الطلب مربوط بشحنة بوسطة بالفعل.", 409);
   }
@@ -584,7 +588,7 @@ export async function createBostaDelivery(order: StoredOrder) {
         },
         goodsInfo: { amount: order.subtotal },
         notes: [order.reference, order.notes].filter(Boolean).join(" — ").slice(0, 200),
-        cod: order.paymentMethod === "cod" ? order.total : 0,
+        cod: getAmountDueOnDelivery(order),
         dropOffAddress,
         businessReference: order.reference,
         uniqueBusinessReference: order.reference,

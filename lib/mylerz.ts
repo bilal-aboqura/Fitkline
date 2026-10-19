@@ -1,4 +1,5 @@
 import "server-only";
+import { getAmountDueOnDelivery, isAwaitingOnlinePayment } from "@/lib/order-payment";
 
 import { phoneComparisonKey } from "@/lib/phone";
 import { resolveShippingLocation } from "@/lib/shipping-store";
@@ -239,6 +240,9 @@ export async function verifyMylerzConnection() {
 }
 
 export async function createMylerzShipment(order: StoredOrder): Promise<MylerzShipment> {
+  if (isAwaitingOnlinePayment(order)) {
+    throw new MylerzIntegrationError("لا يمكن إنشاء الشحنة قبل تأكيد الدفع الإلكتروني المطلوب.", 400);
+  }
   if (order.mylerz?.trackingNumber) throw new MylerzIntegrationError("الطلب مربوط بشحنة Mylerz بالفعل.", 409);
   if (order.bosta?.trackingNumber) throw new MylerzIntegrationError("الطلب مربوط ببوسطة بالفعل. استخدم شركة شحن واحدة لكل طلب.", 409);
   if (order.subtotal === null || order.total === null) {
@@ -263,7 +267,7 @@ export async function createMylerzShipment(order: StoredOrder): Promise<MylerzSh
       Service: "ND",
       Service_Category: "DELIVERY",
       Payment_Type: order.paymentMethod === "cod" ? "COD" : "PP",
-      COD_Value: order.paymentMethod === "cod" ? order.total : 0,
+      COD_Value: getAmountDueOnDelivery(order),
       Customer_Name: order.customer.name,
       Mobile_No: egyptianPhone(order.customer.phone),
       ...(order.customer.alternatePhone ? { Mobile_No2: egyptianPhone(order.customer.alternatePhone) } : {}),

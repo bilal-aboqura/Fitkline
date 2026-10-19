@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getOrders, updateOrder } from "@/lib/order-store";
 import { inspectKashierPayment, verifyKashierSession } from "@/lib/kashier";
+import { getOnlinePaymentAmount } from "@/lib/order-payment";
 
 function findText(payload: Record<string, unknown>, keys: string[]) {
   for (const key of keys) {
@@ -31,20 +32,21 @@ export async function POST(request: Request) {
     }
 
     const verified = await verifyKashierSession(sessionId);
-    if (storedOrder.total === null) {
+    const onlineAmount = getOnlinePaymentAmount(storedOrder);
+    if (onlineAmount === null || onlineAmount <= 0) {
       return NextResponse.json({ error: "Order amount unavailable" }, { status: 409 });
     }
     const inspection = inspectKashierPayment(verified, {
       sessionId,
       reference: storedOrder.reference,
-      amount: storedOrder.total,
+      amount: onlineAmount,
       currency: storedOrder.currency,
     });
     if (!inspection.integrityValid) {
       return NextResponse.json({ error: "Payment integrity mismatch" }, { status: 409 });
     }
     await updateOrder(storedOrder.reference, {
-      paymentStatus: inspection.paid
+      paymentStatus: storedOrder.paymentStatus === "paid" || inspection.paid
         ? "paid"
         : inspection.failed
           ? "failed"

@@ -1,4 +1,5 @@
 import "server-only";
+import { getAmountDueOnDelivery, getOrderPaymentLabel } from "@/lib/order-payment";
 
 import type { StoredOrder } from "@/lib/order-store";
 import type { BostaPickup } from "@/lib/bosta";
@@ -108,7 +109,9 @@ export function formatNewOrderNotification(order: StoredOrder) {
     `الشحن: ${formatMoney(order.shippingAmount, order.currency)}`,
     `الإجمالي: ${formatMoney(order.total, order.currency)}`,
     `طريقة الدفع: ${paymentMethod}`,
-    `حالة الدفع: ${paymentStatus}`,
+    `حالة الدفع: ${getOrderPaymentLabel(order) || paymentStatus}`,
+    `التحصيل عند الاستلام: ${formatMoney(getAmountDueOnDelivery(order), order.currency)}`,
+    ...(order.paymentPlan?.fitklineCustomer ? ["فئة العميل: عميل Fitkline"] : []),
   ].join("\n");
 
   return fitTelegramMessage(message);

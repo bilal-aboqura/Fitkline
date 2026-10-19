@@ -2802,6 +2802,19 @@ textarea:focus-visible {
   max-width: 1000px;
   gap: 36px;
 }
+
+.checkout-customer-status {
+  margin-block-start: 24px;
+  padding: 18px;
+  border: 1px solid var(--fit-border);
+  border-radius: 12px;
+  line-height: 1.8;
+}
+
+.checkout-customer-status p { margin: 0; }
+.checkout-customer-status strong { display: block; margin-block-end: 6px; }
+.checkout-customer-status--member { border-color: #b7ff18; }
+.checkout-customer-status--member strong { color: #b7ff18; }
 .form-section {
   padding: 30px;
   border: 1px solid var(--fit-border);
@@ -2902,6 +2915,8 @@ textarea:focus-visible {
 
 .checkout-totals dd {
   margin: 0;
+  flex-shrink: 0;
+  white-space: nowrap;
   color: var(--fit-white);
   font-weight: 800;
 }

@@ -108,6 +108,7 @@ export type Database = {
           order_status: string;
           payment_method: string;
           payment_status: string;
+          payment_plan: unknown | null;
           kashier_session_id: string | null;
           kashier_payment_id: string | null;
           bosta: unknown | null;
@@ -128,6 +129,7 @@ export type Database = {
           order_status: string;
           payment_method: string;
           payment_status: string;
+          payment_plan?: unknown | null;
           kashier_session_id?: string | null;
           kashier_payment_id?: string | null;
           bosta?: unknown | null;
@@ -243,6 +245,10 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      fitkline_customer_history: {
+        Args: { p_phone: string };
+        Returns: Json;
+      };
       fitkline_get_analytics: {
         Args: { p_days?: number };
         Returns: Json;
