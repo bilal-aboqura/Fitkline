@@ -11,7 +11,6 @@ import {
 } from "@/data/campaign";
 import { getValidBundleOffers, getLinePrice } from "@/lib/cart-pricing";
 import { phoneComparisonKey } from "@/lib/phone";
-import { getCustomerLoyalty } from "@/lib/customer-loyalty-store";
 import { isEgyptianMobile } from "@/lib/customer-loyalty";
 import {
   createOrder,
@@ -163,18 +162,7 @@ export async function POST(request: Request) {
       !hasPendingPrice && shippingAmount !== null
         ? subtotal + shippingAmount
         : null;
-    // Recheck on the server; a browser-provided customer tier cannot waive payment.
-    const loyalty = paymentMethod === "cod"
-      ? await getCustomerLoyalty(customer.phone)
-      : { eligible: false, deliveredOrders: 0, score: 0 };
-    const requiresShippingPrepayment = paymentMethod === "cod" && !loyalty.eligible;
-    if (requiresShippingPrepayment && shippingAmount === null) {
-      return NextResponse.json({ error: "لازم يتحدد سعر الشحن قبل دفعه أونلاين. تواصل مع الفريق." }, { status: 400 });
-    }
-    const onlineAmount = paymentMethod === "kashier" ? total : requiresShippingPrepayment ? shippingAmount : 0;
-    if ((onlineAmount ?? 0) > 0 && (!content.settings.kashierEnabled || !kashier.ready)) {
-      return NextResponse.json({ error: "دفع الشحن أونلاين غير متاح حاليًا. حاول لاحقًا أو تواصل مع الفريق." }, { status: 400 });
-    }
+    const onlineAmount = paymentMethod === "kashier" ? total : 0;
     if (paymentMethod === "kashier") {
       if (!content.settings.kashierEnabled || !kashier.ready) {
         return NextResponse.json({ error: "الدفع الإلكتروني غير متاح حاليًا." }, { status: 400 });
@@ -212,12 +200,6 @@ export async function POST(request: Request) {
       orderStatus: "new",
       paymentMethod,
       paymentStatus: (onlineAmount ?? 0) > 0 ? "pending" : "not-required",
-      paymentPlan: {
-        onlineAmount: onlineAmount ?? 0,
-        fitklineCustomer: loyalty.eligible,
-        deliveredOrders: loyalty.deliveredOrders,
-        score: loyalty.score,
-      },
     };
     await createOrder(order);
     try {

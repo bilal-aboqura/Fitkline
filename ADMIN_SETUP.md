@@ -146,24 +146,9 @@ are repriced from the current catalog, and checkout confirms the displayed
 subtotal before creating an order. Existing products need no migration or price
 changes. Pricing regression tests: `npm run test:pricing`.
 
-### COD shipping and Fitkline customers
+### Cash on delivery
 
-Run `npm run db:migrate:cod` before deploying this checkout version. It adds
-the order's payment snapshot and a service-role-only phone history function.
-Existing orders retain their original payment behavior.
-
-COD customers pay shipping through Kashier and products on delivery. Customers
-with at least three delivered orders and a receipt score of at least 80% on
-their primary phone qualify as Fitkline customers and pay everything on delivery.
-The score is delivered / (delivered + cancelled or returned orders); open orders
-do not count. Thresholds live in `lib/customer-loyalty.ts`. Shipping is deferred,
-not free. Failed history checks block COD until retry so the exemption is never
-guessed. Zero-cost shipping needs no payment session.
-
-Keep Kashier enabled and configured to accept prepaid shipping. Its callback
-verifies the snapshot's online amount, and Bosta/Mylerz collect only the unpaid
-balance. Pending or failed online payments block fulfillment. Test coverage:
-`npm run test:checkout`. No real payment is made by these tests.
+Cash-on-delivery orders collect the product and shipping total on delivery. The team can contact the customer to confirm the order. Online payments continue through Kashier. Existing orders retain their original payment snapshots and behavior.
 
 - CMS content and products: `fitkline_cms_documents`
 - Orders: `fitkline_orders`
