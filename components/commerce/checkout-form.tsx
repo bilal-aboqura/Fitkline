@@ -94,8 +94,6 @@ export function CheckoutForm({
     subtotal !== null && shippingAmount !== null
       ? subtotal + shippingAmount
       : null;
-  const onlineAmount = effectivePaymentMethod === "kashier" ? total : 0;
-  const dueOnDelivery = effectivePaymentMethod === "cod" ? total : 0;
 
   useEffect(() => {
     if (!items.length || initiatedCheckout.current) return;
@@ -414,14 +412,6 @@ export function CheckoutForm({
           <div>
             <dt>الإجمالي</dt>
             <dd>{total === null ? "قيد التأكيد" : money(total)}</dd>
-          </div>
-          <div>
-            <dt>المطلوب أونلاين دلوقتي</dt>
-            <dd>{onlineAmount === null ? "قيد التأكيد" : money(onlineAmount)}</dd>
-          </div>
-          <div>
-            <dt>عند الاستلام</dt>
-            <dd>{dueOnDelivery === null ? "قيد التأكيد" : money(dueOnDelivery)}</dd>
           </div>
         </dl>
 
